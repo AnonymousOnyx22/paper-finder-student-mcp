@@ -1,0 +1,66 @@
+{
+  "name": "paper-finder-student-mcp",
+  "version": "0.1.0",
+  "description": "Search scholarly papers, find open access copies and related work through OpenAlex. No key needed.",
+  "type": "module",
+  "main": "build/src/index.js",
+  "bin": {
+    "paper-finder-student-mcp": "build/src/index.js"
+  },
+  "files": [
+    "build/src",
+    "README.md",
+    "llms.txt",
+    "CHANGELOG.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc && node -e \"require('fs').chmodSync('build/src/index.js', 0o755)\"",
+    "test": "vitest run",
+    "start": "node build/src/index.js",
+    "prepublishOnly": "npm run build && npm test"
+  },
+  "keywords": [
+    "mcp",
+    "mcp-server",
+    "model-context-protocol",
+    "student",
+    "students",
+    "education",
+    "edtech",
+    "ai-agent",
+    "claude",
+    "chatgpt",
+    "cursor",
+    "research",
+    "papers",
+    "scholarly",
+    "openalex",
+    "open-access",
+    "literature-review",
+    "academic"
+  ],
+  "author": "AnonymousOnyx22",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/AnonymousOnyx22/paper-finder-student-mcp.git"
+  },
+  "homepage": "https://github.com/AnonymousOnyx22/paper-finder-student-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/AnonymousOnyx22/paper-finder-student-mcp/issues"
+  },
+  "mcpName": "io.github.AnonymousOnyx22/paper-finder-student-mcp",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "typescript": "^5.6.0",
+    "vitest": "^2.1.0"
+  }
+}

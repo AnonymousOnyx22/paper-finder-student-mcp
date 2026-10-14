@@ -1,0 +1,18 @@
+# paper-finder-student-mcp
+
+> Search scholarly papers, find open access copies and related work through OpenAlex. No key needed. Free and open source MCP server for AI apps (Claude, ChatGPT, Cursor, Copilot and others).
+
+## Setup
+- Run with npx -y paper-finder-student-mcp
+- No key or account. Optional OPENALEX_EMAIL for OpenAlex's polite pool.
+- Papers are identified by DOI (10.xxxx/yyy) or OpenAlex id (W followed by digits).
+
+## Tools
+- search_papers
+- get_paper
+- related_papers
+- cited_by
+
+## Links
+- Source and README, https://github.com/AnonymousOnyx22/paper-finder-student-mcp
+- More free student MCP servers, https://brightspacemcp.com/more-mcps/
