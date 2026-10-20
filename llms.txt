@@ -7,15 +7,19 @@
 - No key or account. Optional OPENALEX_EMAIL for OpenAlex's polite pool.
 - Papers are identified by DOI (10.xxxx/yyy) or OpenAlex id (W followed by digits).
 
+## Data
+- All results come from OpenAlex (https://openalex.org), a free open catalog of more than 250 million works, so the papers are real, not invented.
+- Every tool reads OpenAlex directly, so there is no key needed and no account.
+
 ## Tools
-- search_papers
-- get_paper
-- get_paper_by_doi
-- find_open_access_pdf
-- related_papers
-- get_related_work
-- cited_by
-- list_author_papers
+- search_papers: query (required keywords), from_year (optional earliest publication year), open_access_only (optional, false by default), limit (optional, 1 to 25, default 8).
+- get_paper: paper (required, a DOI like 10.1038/nature14539, a doi.org link or an OpenAlex id like W2741809807).
+- get_paper_by_doi: doi (required, a DOI like 10.1038/nature14539 or a doi.org link).
+- find_open_access_pdf: paper (required, a DOI like 10.1038/nature14539, a doi.org link or an OpenAlex id like W2741809807).
+- related_papers: paper (required, a DOI like 10.1038/nature14539, a doi.org link or an OpenAlex id like W2741809807), limit (optional, 1 to 25, default 8).
+- get_related_work: paper (required, a DOI like 10.1038/nature14539, a doi.org link or an OpenAlex id like W2741809807), limit (optional, 1 to 25, default 8).
+- cited_by: paper (required, a DOI like 10.1038/nature14539, a doi.org link or an OpenAlex id like W2741809807), limit (optional, 1 to 25, default 8).
+- list_author_papers: author (required, the name as it appears on the paper, for example Jane Doe), from_year (optional earliest publication year), open_access_only (optional, false by default), limit (optional, 1 to 25, default 8).
 
 Each tool description states its inputs and one example prompt.
 
