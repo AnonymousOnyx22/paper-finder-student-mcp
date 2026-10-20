@@ -18,11 +18,23 @@ export interface ToolResult {
   isError?: boolean;
 }
 
+/** An expected failure with a stable machine readable code, such as "not_found" or "rate_limited". */
+export class ToolError extends Error {
+  constructor(
+    message: string,
+    public code: string,
+  ) {
+    super(message);
+    this.name = "ToolError";
+  }
+}
+
 export async function runTool<Api>(tool: ToolDef<Api>, args: unknown, api: Api): Promise<ToolResult> {
   try {
     const text = await tool.run(args, api);
     return { content: [{ type: "text", text }] };
   } catch (err) {
+    if (err instanceof ToolError) return { content: [{ type: "text", text: err.message }], isError: true, code: err.code };
     const msg = err instanceof ApiError ? err.message : `Something went wrong: ${(err as Error).message}`;
     return { content: [{ type: "text", text: msg }], isError: true };
   }

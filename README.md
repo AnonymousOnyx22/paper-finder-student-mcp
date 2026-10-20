@@ -46,6 +46,7 @@ Restart your AI app, then try one of the prompts below. You need Node.js 20 or n
 
 ## Good to know
 
+- Lookups that miss are flagged as errors with a stable code, not empty results. A wrong or unknown reference returns a not found error that suggests searching by the title or checking the DOI format, and a rate limit returns an error that says to wait about a minute and retry.
 - Citation counts and open access links come from OpenAlex and can be a little behind the publisher.
 - If you want faster, more reliable service for heavy use, set `OPENALEX_EMAIL` to your own email. OpenAlex asks for it so they can reach you, and it is sent only to OpenAlex.
 - `OPENALEX_BASE_URL` points the server somewhere else, which the tests use.

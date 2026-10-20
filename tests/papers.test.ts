@@ -33,11 +33,13 @@ beforeAll(async () => {
     if (url.pathname === "/works") {
       const q = url.searchParams.get("search");
       const filter = url.searchParams.get("filter") ?? "";
+      if (q === "ratelimit") return json({ error: "Rate limit exceeded" }, 429);
       if (q === "nothing") return json({ results: [] });
       if (filter.startsWith("openalex:")) return json({ results: filter.slice(9).split("|").map((id) => work(Number(id.slice(1)))) });
       if (filter.startsWith("cites:")) return json({ results: [work(500), work(501)] });
       return json({ results: [work(2), work(3)] });
     }
+    if (url.pathname === "/works/doi:10.1000/ratelimited") return json({ error: "Rate limit exceeded" }, 429);
     if (url.pathname === "/works/doi:10.1000/p2" || url.pathname === "/works/W2")
       return json(work(2, { abstract_inverted_index: { Hello: [0], tested: [2], world: [1] }, related_works: ["https://openalex.org/W10", "https://openalex.org/W11"] }));
     json({}, 404);
@@ -53,7 +55,7 @@ afterAll(() => srv.close());
 
 async function call(name: string, args: Record<string, unknown> = {}) {
   const r: any = await client.callTool({ name, arguments: args });
-  return { text: r.content[0].text as string, isError: !!r.isError };
+  return { text: r.content[0].text as string, isError: !!r.isError, code: r.code as string | undefined };
 }
 
 describe("helpers", () => {
@@ -81,8 +83,12 @@ describe("MCP tools", () => {
     expect(u.searchParams.get("filter")).toBe("from_publication_date:2021-01-01,is_oa:true");
     expect(u.searchParams.get("mailto")).toBe("me@example.com");
   });
-  it("says when nothing matches", async () => {
+  it("says when nothing matches and blames the filters that hid everything", async () => {
     expect((await call("search_papers", { query: "nothing" })).text).toContain("No papers found");
+    const filtered = await call("search_papers", { query: "nothing", open_access_only: true, from_year: 2021 });
+    expect(filtered.isError).toBe(false);
+    expect(filtered.text).toContain("open_access_only");
+    expect(filtered.text).toContain("from_year");
   });
   it("shows an abstract for a DOI", async () => {
     const r = await call("get_paper", { paper: "10.1000/p2" });
@@ -92,12 +98,33 @@ describe("MCP tools", () => {
     expect((await call("related_papers", { paper: "W2", limit: 2 })).text).toContain("Paper 10");
     expect((await call("cited_by", { paper: "W2" })).text).toContain("Paper 500");
   });
-  it("returns a friendly error for an unknown paper and a bad id", async () => {
-    const a = await call("get_paper", { paper: "10.1000/unknown" });
+  it("returns a typed not found error that suggests a title search or a DOI check", async () => {
+    const r = await call("get_paper", { paper: "10.1000/unknown" });
+    expect(r.isError).toBe(true);
+    expect(r.code).toBe("not_found");
+    expect(r.text).toContain("no paper for \"10.1000/unknown\"");
+    expect(r.text).toContain("Check the DOI format");
+    expect(r.text).toContain("search by the title with search_papers");
+    expect((await call("cited_by", { paper: "W999" })).code).toBe("not_found");
+  });
+  it("returns a typed rate limit error instead of an empty answer", async () => {
+    const a = await call("get_paper", { paper: "10.1000/ratelimited" });
     expect(a.isError).toBe(true);
-    expect(a.text).toContain("Not found");
-    const b = await call("get_paper", { paper: "hello" });
+    expect(a.code).toBe("rate_limited");
+    expect(a.text).toContain("rate limited");
+    expect(a.text).toContain("Wait about a minute");
+    const b = await call("search_papers", { query: "ratelimit" });
     expect(b.isError).toBe(true);
-    expect(b.text).toContain("not a DOI");
+    expect(b.code).toBe("rate_limited");
+    const c = await call("related_papers", { paper: "10.1000/ratelimited" });
+    expect(c.isError).toBe(true);
+    expect(c.code).toBe("rate_limited");
+  });
+  it("returns a typed invalid ref error for a bad id", async () => {
+    const r = await call("get_paper", { paper: "hello" });
+    expect(r.isError).toBe(true);
+    expect(r.code).toBe("invalid_ref");
+    expect(r.text).toContain("not a DOI");
+    expect(r.text).not.toContain("Something went wrong");
   });
 });

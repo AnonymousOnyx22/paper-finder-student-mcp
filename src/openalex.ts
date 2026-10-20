@@ -1,4 +1,5 @@
-import type { HttpClient } from "./core/http.js";
+import { ApiError, type HttpClient } from "./core/http.js";
+import { ToolError } from "./core/tools.js";
 
 export interface Work {
   id: string;
@@ -28,7 +29,10 @@ export function normalizeRef(input: string): string {
   if (/^10\.\d{4,9}\/\S+$/.test(doi)) return `doi:${doi}`;
   const id = shortId(t);
   if (/^W\d+$/i.test(id)) return id.toUpperCase();
-  throw new Error(`"${input}" is not a DOI or an OpenAlex id. Use a DOI like 10.1038/nature14539 or an id like W2741809807.`);
+  throw new ToolError(
+    `"${input}" is not a DOI or an OpenAlex id. Use a DOI like 10.1038/nature14539 or an id like W2741809807.`,
+    "invalid_ref",
+  );
 }
 
 export function abstractOf(index?: Record<string, number[]> | null): string {
@@ -63,28 +67,47 @@ function params(api: OpenAlex, extra: Record<string, string | number | undefined
   return { ...extra, ...(api.email ? { mailto: api.email } : {}) };
 }
 
+/** Fetch one JSON document, turning a 404 for a known ref and a 429 into typed errors. */
+async function getJson<T>(api: OpenAlex, path: string, query: Record<string, string | number | undefined>, ref?: string): Promise<T> {
+  try {
+    return await api.http.get<T>(path, query);
+  } catch (err) {
+    if (err instanceof ApiError && err.status === 404 && ref !== undefined)
+      throw new ToolError(
+        `OpenAlex has no paper for "${ref}". Check the DOI format, it should look like 10.1038/nature14539, or search by the title with search_papers. Do not invent a citation for this reference.`,
+        "not_found",
+      );
+    if (err instanceof ApiError && err.status === 429)
+      throw new ToolError(
+        `OpenAlex rate limited this request (HTTP 429). Wait about a minute and try again. Making fewer requests at a time also helps.`,
+        "rate_limited",
+      );
+    throw err;
+  }
+}
+
 export async function search(api: OpenAlex, query: string, opts: { fromYear?: number; openAccessOnly?: boolean; limit: number }): Promise<Work[]> {
   const filters: string[] = [];
   if (opts.fromYear) filters.push(`from_publication_date:${opts.fromYear}-01-01`);
   if (opts.openAccessOnly) filters.push("is_oa:true");
-  const res: any = await api.http.get("/works", params(api, { search: query, filter: filters.join(",") || undefined, per_page: opts.limit, select: FIELDS }));
+  const res: any = await getJson<any>(api, "/works", params(api, { search: query, filter: filters.join(",") || undefined, per_page: opts.limit, select: FIELDS }));
   return res.results ?? [];
 }
 
 export async function getWork(api: OpenAlex, ref: string): Promise<Work> {
-  return api.http.get<Work>(`/works/${normalizeRef(ref)}`, params(api, { select: FULL_FIELDS }));
+  return getJson<Work>(api, `/works/${normalizeRef(ref)}`, params(api, { select: FULL_FIELDS }), ref);
 }
 
 export async function related(api: OpenAlex, ref: string, limit: number): Promise<{ base: Work; works: Work[] }> {
   const base = await getWork(api, ref);
   const ids = (base.related_works ?? []).slice(0, limit).map(shortId);
   if (ids.length === 0) return { base, works: [] };
-  const res: any = await api.http.get("/works", params(api, { filter: `openalex:${ids.join("|")}`, per_page: limit, select: FIELDS }));
+  const res: any = await getJson<any>(api, "/works", params(api, { filter: `openalex:${ids.join("|")}`, per_page: limit, select: FIELDS }));
   return { base, works: res.results ?? [] };
 }
 
 export async function citedBy(api: OpenAlex, ref: string, limit: number): Promise<{ base: Work; works: Work[] }> {
   const base = await getWork(api, ref);
-  const res: any = await api.http.get("/works", params(api, { filter: `cites:${shortId(base.id)}`, sort: "publication_date:desc", per_page: limit, select: FIELDS }));
+  const res: any = await getJson<any>(api, "/works", params(api, { filter: `cites:${shortId(base.id)}`, sort: "publication_date:desc", per_page: limit, select: FIELDS }));
   return { base, works: res.results ?? [] };
 }

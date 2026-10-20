@@ -18,14 +18,20 @@ export const tools: ToolDef<OpenAlex>[] = [
     },
     run: async (a, api) => {
       const works = await search(api, a.query, { fromYear: a.from_year, openAccessOnly: a.open_access_only, limit: a.limit });
-      if (works.length === 0) return `No papers found for "${a.query}". Try fewer or broader keywords.`;
+      if (works.length === 0) {
+        const fixes = ["Try fewer or broader keywords."];
+        if (a.open_access_only) fixes.push("Set open_access_only to false, some good papers have no free copy.");
+        if (a.from_year) fixes.push(`Lower from_year, nothing matched from ${a.from_year} onwards.`);
+        return `No papers found for "${a.query}". ${fixes.join(" ")}`;
+      }
       return works.map((w, i) => `${i + 1}. ${line(w)}`).join("\n\n");
     },
   },
   {
     name: "get_paper",
     title: "Get a paper",
-    description: "Details for one paper, including the abstract and a free to read link when one exists.",
+    description:
+      "Details for one paper, including the abstract and a free to read link when one exists. A wrong or unknown reference returns a not found error that suggests searching by title or checking the DOI format.",
     inputSchema: { paper: ref },
     run: async (a, api) => {
       const w = await getWork(api, a.paper);
@@ -40,7 +46,7 @@ export const tools: ToolDef<OpenAlex>[] = [
     inputSchema: { paper: ref, limit },
     run: async (a, api) => {
       const { base, works } = await related(api, a.paper, a.limit);
-      if (works.length === 0) return `OpenAlex lists no related papers for "${base.display_name ?? a.paper}".`;
+      if (works.length === 0) return `OpenAlex lists no related papers for "${base.display_name ?? a.paper}". Try cited_by to find papers that cite it.`;
       return `Related to "${base.display_name}"\n\n` + works.map((w, i) => `${i + 1}. ${line(w)}`).join("\n\n");
     },
   },
@@ -51,7 +57,8 @@ export const tools: ToolDef<OpenAlex>[] = [
     inputSchema: { paper: ref, limit },
     run: async (a, api) => {
       const { base, works } = await citedBy(api, a.paper, a.limit);
-      if (works.length === 0) return `No papers citing "${base.display_name ?? a.paper}" were found.`;
+      if (works.length === 0)
+        return `No papers citing "${base.display_name ?? a.paper}" were found. The paper may be new or rarely cited. Try related_papers for similar work.`;
       return `Papers citing "${base.display_name}" (${base.cited_by_count ?? "?"} in total)\n\n` + works.map((w, i) => `${i + 1}. ${line(w)}`).join("\n\n");
     },
   },
