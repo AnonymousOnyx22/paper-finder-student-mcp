@@ -4,13 +4,13 @@
 [![downloads](https://img.shields.io/npm/dm/paper-finder-student-mcp.svg)](https://www.npmjs.com/package/paper-finder-student-mcp)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Ask your AI to find real scholarly papers for an essay or research project, with authors, year, citation counts, DOIs and a free to read link when one exists. Results come straight from [OpenAlex](https://openalex.org), a free open catalog of more than 250 million works, so the papers are real, not invented.
+Ask your AI to find real scholarly papers for an essay or research project, with authors, year, citation counts, DOIs and a free to read link when one exists. Results come straight from [OpenAlex](https://openalex.org), a free open catalog of more than 250 million works, so the papers are real, not invented. Free forever, no account and no key.
 
-This is a free, open source [MCP](https://modelcontextprotocol.io) server. It works with Claude, ChatGPT, Cursor, VS Code Copilot and any other app that supports MCP. Searches go to the free public OpenAlex service and nothing else. There is no account or key, and nothing is stored.
+## Install
 
-Free forever. No account and no subscription.
-
-## Quick start
+```bash
+npx -y paper-finder-student-mcp
+```
 
 Add this to your AI app's MCP config. For Claude Desktop that is `claude_desktop_config.json`.
 
@@ -25,25 +25,24 @@ Add this to your AI app's MCP config. For Claude Desktop that is `claude_desktop
 }
 ```
 
-Restart your AI app, then try one of the questions below. You need Node.js 20 or newer.
+Restart your AI app, then try one of the prompts below. You need Node.js 20 or newer. For Claude Code, run `claude mcp add paper-finder -- npx -y paper-finder-student-mcp`.
 
-For Claude Code, run `claude mcp add paper-finder -- npx -y paper-finder-student-mcp`.
+## Example prompts
 
-## What you can ask
-
-- "Find recent open access papers on spaced repetition and exam performance."
-- "Give me the abstract and a free link for 10.1038/nature14539."
-- "What papers are related to that one?"
-- "Who has cited that paper the most recently?"
+- "Find an open access copy of DOI 10.1038/nature14539."
+- "Who cited this Attention paper? DOI 10.48550/arXiv.1706.03762."
+- "Find open access papers on spaced repetition and exam performance since 2020."
 
 ## Tools
 
-| Tool | What it does |
-| --- | --- |
-| `search_papers` | Search scholarly works by keywords, with optional year and open access filters |
-| `get_paper` | Details for one paper from its DOI or OpenAlex id, including the abstract |
-| `related_papers` | Papers OpenAlex marks as related to a paper |
-| `cited_by` | Newer papers that cite a paper |
+| Tool | What it does | Parameters |
+| --- | --- | --- |
+| `search_papers` | Search scholarly works by keywords, with optional year and open access filters | `query`, `from_year`, `open_access_only`, `limit` |
+| `get_paper` | Details for one paper from its DOI or OpenAlex id, including the abstract | `paper` |
+| `related_papers` | Papers OpenAlex marks as related to a paper | `paper`, `limit` |
+| `cited_by` | Newer papers that cite a paper, most recent first | `paper`, `limit` |
+
+`paper` accepts a DOI like `10.1038/nature14539`, a doi.org link, or an OpenAlex id like `W2741809807`.
 
 ## Good to know
 
