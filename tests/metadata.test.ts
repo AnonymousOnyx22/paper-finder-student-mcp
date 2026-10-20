@@ -33,3 +33,22 @@ describe("llms.txt and glama.json", () => {
     }
   });
 });
+
+describe("npm search metadata", () => {
+  it("leads the description and keywords with the phrase academic paper search mcp", () => {
+    const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
+    expect(pkg.description.toLowerCase()).toContain("academic paper search mcp");
+    expect(pkg.keywords[0].toLowerCase()).toBe("academic paper search mcp");
+  });
+  it("keeps the server.json description under the registry limit and on phrase", () => {
+    const server = JSON.parse(readFileSync(new URL("../server.json", import.meta.url), "utf8"));
+    expect(server.description.length).toBeLessThanOrEqual(100);
+    expect(server.description.toLowerCase()).toContain("academic paper search mcp");
+  });
+  it("keeps glama.json and llms.txt on phrase", () => {
+    const glama2 = JSON.parse(readFileSync(new URL("../glama.json", import.meta.url), "utf8"));
+    expect(glama2.description.toLowerCase()).toContain("academic paper search mcp");
+    const llms2 = readFileSync(new URL("../llms.txt", import.meta.url), "utf8").toLowerCase();
+    expect(llms2).toContain("academic paper search mcp");
+  });
+});

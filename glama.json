@@ -4,50 +4,53 @@
     "AnonymousOnyx22"
   ],
   "name": "paper-finder-student-mcp",
-  "description": "Search scholarly papers, find open access copies and related work through OpenAlex (https://openalex.org), a free open catalog of more than 250 million works. Free and open source, with no key needed.",
+  "description": "Academic paper search MCP server. Search scholarly papers, find open access copies and related work through OpenAlex (https://openalex.org), with no key needed.",
   "repository": {
     "url": "https://github.com/AnonymousOnyx22/paper-finder-student-mcp",
     "source": "github"
   },
+  "type": "stdio",
+  "license": "MIT",
+  "homepage": "https://github.com/AnonymousOnyx22/paper-finder-student-mcp",
   "tools": [
     {
       "name": "search_papers",
-      "description": "Search scholarly papers by keywords, with optional year and open access filters.",
+      "description": "Search scholarly papers by keywords. Returns title, authors, year, venue, citation count, DOI and a free to read link when one exists. Inputs: query (required keywords), from_year (optional earliest publication year), open_access_only (optional, false by default), limit (optional, 1 to 25, default 8). Example prompt: 'find open access papers on spaced repetition since 2020.'",
       "parameters": ["query", "from_year", "open_access_only", "limit"]
     },
     {
       "name": "get_paper",
-      "description": "Details for one paper from a DOI, a doi.org link or an OpenAlex id, including the abstract.",
+      "description": "Details for one paper, including the abstract and a free to read link when one exists. A wrong or unknown reference returns a not found error that suggests searching by title or checking the DOI format. Inputs: paper (required, a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807). Example prompt: 'show me the abstract of DOI 10.1038/nature14539.'",
       "parameters": ["paper"]
     },
     {
       "name": "get_paper_by_doi",
-      "description": "Details for one paper looked up by DOI only, with a helpful error for anything that is not a DOI.",
+      "description": "Details for one paper looked up by DOI only, including the abstract and a free to read link when one exists. An OpenAlex id or a malformed DOI returns an invalid ref error that points at get_paper. Inputs: doi (required, a DOI like 10.1038/nature14539 or a doi.org link). Example prompt: 'get the paper with DOI 10.1038/nature14539.'",
       "parameters": ["doi"]
     },
     {
       "name": "find_open_access_pdf",
-      "description": "The free to read copy of one paper, preferring a PDF link, or a plain note that none exists.",
+      "description": "Finds a free to read copy of one paper and returns the link, preferring a PDF over a landing page. When OpenAlex has no free copy it says so in plain words instead of failing. Inputs: paper (required, a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807). Example prompt: 'find a free PDF of this paper, DOI 10.1038/nature14539.'",
       "parameters": ["paper"]
     },
     {
       "name": "related_papers",
-      "description": "Papers OpenAlex marks as related to a paper.",
+      "description": "Papers that OpenAlex lists as related to a given paper. Inputs: paper (required, a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807), limit (optional, 1 to 25, default 8). Example prompt: 'what papers are related to DOI 10.48550/arXiv.1706.03762?'",
       "parameters": ["paper", "limit"]
     },
     {
       "name": "get_related_work",
-      "description": "The same list as related_papers, under a verb-first name.",
+      "description": "Other papers on the same topic as one paper. Returns the same list as related_papers, kept as a verb-first name for clients that prefer it. Inputs: paper (required, a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807), limit (optional, 1 to 25, default 8). Example prompt: 'what related work should I read for DOI 10.48550/arXiv.1706.03762?'",
       "parameters": ["paper", "limit"]
     },
     {
       "name": "cited_by",
-      "description": "Newer papers that cite a paper, most recent first.",
+      "description": "Newer papers that cite a given paper, most recent first. Inputs: paper (required, a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807), limit (optional, 1 to 25, default 8). Example prompt: 'who cited DOI 10.48550/arXiv.1706.03762?'",
       "parameters": ["paper", "limit"]
     },
     {
       "name": "list_author_papers",
-      "description": "Papers by one author, most cited first, matched by the name as written on the papers.",
+      "description": "Papers by one author, most cited first. Matches the author name as it is written on the papers, so exact spelling matters. Inputs: author (required, the name as it appears on the paper, for example Jane Doe), from_year (optional earliest publication year), open_access_only (optional, false by default), limit (optional, 1 to 25, default 8). Example prompt: 'list papers by John Dewey on education since 1950.'",
       "parameters": ["author", "from_year", "open_access_only", "limit"]
     }
   ]

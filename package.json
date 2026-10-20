@@ -1,7 +1,7 @@
 {
   "name": "paper-finder-student-mcp",
   "version": "0.1.0",
-  "description": "Search scholarly papers, find open access copies and related work through OpenAlex. No key needed.",
+  "description": "Academic paper search MCP server for AI apps. Search scholarly papers, find open access copies and related work through OpenAlex. No key needed.",
   "type": "module",
   "main": "build/src/index.js",
   "bin": {
@@ -24,7 +24,13 @@
     "prepublishOnly": "npm run build && npm test"
   },
   "keywords": [
+    "academic paper search mcp",
+    "paper finder mcp",
+    "academic",
+    "paper",
+    "search",
     "mcp",
+    "mcp server",
     "mcp-server",
     "model-context-protocol",
     "student",
@@ -39,9 +45,10 @@
     "papers",
     "scholarly",
     "openalex",
+    "open access",
     "open-access",
-    "literature-review",
-    "academic"
+    "literature review",
+    "literature-review"
   ],
   "author": "AnonymousOnyx22",
   "license": "MIT",

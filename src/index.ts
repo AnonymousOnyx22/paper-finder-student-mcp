@@ -5,7 +5,7 @@ import { createServer, VERSION } from "./server.js";
 function usage(): void {
   console.log(`paper-finder-student-mcp ${VERSION}
 
-Search scholarly papers and find free copies through OpenAlex (MCP).
+Academic paper search MCP server. Search scholarly papers and find free copies through OpenAlex.
 
 Add it to your AI app's MCP config with command "npx" and args ["-y", "paper-finder-student-mcp"].
 
