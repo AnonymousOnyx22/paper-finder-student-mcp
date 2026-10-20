@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.1.1
+
+- Rewrite metadata for academic paper search mcp
+- Audit llms.txt and glama.json so all six tools, the OpenAlex source and the no-key claim appear verbatim
+- Rename tools verb-first and rewrite descriptions with parameters and one example prompt each
+- Return helpful typed errors for misses and rate limits instead of empty results
+- Rebuild the README first screen as an npx install block plus three example prompts and the tool list
+
 ## Unreleased
 
 - llms.txt and glama.json now enumerate every tool with its parameters, name OpenAlex (https://openalex.org) as the data source, and carry the exact phrase no key needed. A test keeps both files in sync with the tools in src/tools.ts.

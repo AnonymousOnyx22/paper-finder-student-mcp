@@ -1,6 +1,6 @@
 {
   "name": "paper-finder-student-mcp",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Academic paper search MCP server for AI apps. Search scholarly papers, find open access copies and related work through OpenAlex. No key needed.",
   "type": "module",
   "main": "build/src/index.js",
