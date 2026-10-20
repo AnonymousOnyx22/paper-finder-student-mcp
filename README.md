@@ -29,9 +29,12 @@ Restart your AI app, then try one of the prompts below. You need Node.js 20 or n
 
 ## Example prompts
 
-- "Find an open access copy of DOI 10.1038/nature14539."
-- "Who cited this Attention paper? DOI 10.48550/arXiv.1706.03762."
 - "Find open access papers on spaced repetition and exam performance since 2020."
+- "Get the paper with DOI 10.1038/nature14539 and show me the abstract."
+- "Find a free PDF of this paper, DOI 10.1038/nature14539."
+- "What related work should I read for DOI 10.48550/arXiv.1706.03762?"
+- "Who cited DOI 10.48550/arXiv.1706.03762?"
+- "List papers by John Dewey on education since 1950."
 
 ## Tools
 
@@ -39,14 +42,18 @@ Restart your AI app, then try one of the prompts below. You need Node.js 20 or n
 | --- | --- | --- |
 | `search_papers` | Search scholarly works by keywords, with optional year and open access filters | `query`, `from_year`, `open_access_only`, `limit` |
 | `get_paper` | Details for one paper from its DOI or OpenAlex id, including the abstract | `paper` |
+| `get_paper_by_doi` | The same details, looked up by DOI only, with a helpful error for anything that is not a DOI | `doi` |
+| `find_open_access_pdf` | The free to read copy of one paper, preferring a PDF link, or a plain note that none exists | `paper` |
 | `related_papers` | Papers OpenAlex marks as related to a paper | `paper`, `limit` |
+| `get_related_work` | The same list as `related_papers`, under a verb-first name | `paper`, `limit` |
 | `cited_by` | Newer papers that cite a paper, most recent first | `paper`, `limit` |
+| `list_author_papers` | Papers by one author, most cited first | `author`, `from_year`, `open_access_only`, `limit` |
 
-`paper` accepts a DOI like `10.1038/nature14539`, a doi.org link, or an OpenAlex id like `W2741809807`.
+Every tool description states its inputs and one example prompt, so clients can pick the right tool without reading this page. `paper` accepts a DOI like `10.1038/nature14539`, a doi.org link, or an OpenAlex id like `W2741809807`. `doi` accepts only a DOI or doi.org link. `limit` is 1 to 25, default 8. `list_author_papers` matches the author name as it is written on the papers, so exact spelling matters.
 
 ## Good to know
 
-- Lookups that miss are flagged as errors with a stable code, not empty results. A wrong or unknown reference returns a not found error that suggests searching by the title or checking the DOI format, and a rate limit returns an error that says to wait about a minute and retry.
+- Lookups that miss are flagged as errors with a stable code, not empty results. A wrong or unknown reference returns a not found error that suggests searching by the title or checking the DOI format, and a rate limit returns an error that says to wait about a minute and retry. A missing free copy is not an error, `find_open_access_pdf` just says that none was found.
 - Citation counts and open access links come from OpenAlex and can be a little behind the publisher.
 - If you want faster, more reliable service for heavy use, set `OPENALEX_EMAIL` to your own email. OpenAlex asks for it so they can reach you, and it is sent only to OpenAlex.
 - `OPENALEX_BASE_URL` points the server somewhere else, which the tests use.

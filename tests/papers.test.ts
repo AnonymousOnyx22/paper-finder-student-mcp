@@ -37,11 +37,14 @@ beforeAll(async () => {
       if (q === "nothing") return json({ results: [] });
       if (filter.startsWith("openalex:")) return json({ results: filter.slice(9).split("|").map((id) => work(Number(id.slice(1)))) });
       if (filter.startsWith("cites:")) return json({ results: [work(500), work(501)] });
+      if (filter.startsWith("raw_author_name.search:Nobody")) return json({ results: [] });
+      if (filter.startsWith("raw_author_name.search:")) return json({ results: [work(7), work(8)] });
       return json({ results: [work(2), work(3)] });
     }
     if (url.pathname === "/works/doi:10.1000/ratelimited") return json({ error: "Rate limit exceeded" }, 429);
+    if (url.pathname === "/works/doi:10.1000/p3") return json(work(3));
     if (url.pathname === "/works/doi:10.1000/p2" || url.pathname === "/works/W2")
-      return json(work(2, { abstract_inverted_index: { Hello: [0], tested: [2], world: [1] }, related_works: ["https://openalex.org/W10", "https://openalex.org/W11"] }));
+      return json(work(2, { abstract_inverted_index: { Hello: [0], tested: [2], world: [1] }, related_works: ["https://openalex.org/W10", "https://openalex.org/W11"], best_oa_location: { pdf_url: "https://free.example/2/paper.pdf" } }));
     json({}, 404);
   });
   await new Promise<void>((r) => srv.listen(0, "127.0.0.1", r));
@@ -68,10 +71,26 @@ describe("helpers", () => {
 });
 
 describe("MCP tools", () => {
-  it("lists four read only tools", async () => {
+  it("lists eight read only tools", async () => {
     const tools = (await client.listTools()).tools;
-    expect(tools.map((t) => t.name).sort()).toEqual(["cited_by", "get_paper", "related_papers", "search_papers"]);
+    expect(tools.map((t) => t.name).sort()).toEqual([
+      "cited_by",
+      "find_open_access_pdf",
+      "get_paper",
+      "get_paper_by_doi",
+      "get_related_work",
+      "list_author_papers",
+      "related_papers",
+      "search_papers",
+    ]);
     for (const t of tools) expect(t.annotations?.readOnlyHint).toBe(true);
+  });
+  it("describes the inputs and one example prompt for every tool, with no dashes", async () => {
+    for (const t of (await client.listTools()).tools) {
+      expect(t.description).toContain("Inputs:");
+      expect(t.description).toContain("Example prompt:");
+      expect(t.description).not.toMatch(/[—–]/);
+    }
   });
   it("searches with filters and shows free links", async () => {
     const r = await call("search_papers", { query: "spaced repetition", from_year: 2021, open_access_only: true, limit: 2 });
@@ -94,8 +113,44 @@ describe("MCP tools", () => {
     const r = await call("get_paper", { paper: "10.1000/p2" });
     expect(r.text).toContain("Abstract\nHello world tested");
   });
+  it("gets a paper by DOI only and points elsewhere for an OpenAlex id", async () => {
+    const r = await call("get_paper_by_doi", { doi: "https://doi.org/10.1000/p2" });
+    expect(r.text).toContain("Abstract\nHello world tested");
+    const bad = await call("get_paper_by_doi", { doi: "W2" });
+    expect(bad.isError).toBe(true);
+    expect(bad.code).toBe("invalid_ref");
+    expect(bad.text).toContain("not a DOI");
+    expect(bad.text).toContain("Use get_paper");
+    expect((await call("get_paper_by_doi", { doi: "10.1000/unknown" })).code).toBe("not_found");
+  });
+  it("returns a free copy link, preferring a PDF, and says plainly when there is none", async () => {
+    const r = await call("find_open_access_pdf", { paper: "10.1000/p2" });
+    expect(r.isError).toBe(false);
+    expect(r.text).toContain("PDF: https://free.example/2/paper.pdf");
+    expect(r.text).toContain("Free to read page: https://free.example/2");
+    const none = await call("find_open_access_pdf", { paper: "10.1000/p3" });
+    expect(none.isError).toBe(false);
+    expect(none.text).toContain("No free copy of \"Paper 3\"");
+    expect((await call("find_open_access_pdf", { paper: "10.1000/unknown" })).code).toBe("not_found");
+  });
+  it("lists an author's papers most cited first and blames the name when nothing matches", async () => {
+    const r = await call("list_author_papers", { author: "Ada Lovelace", from_year: 2019, open_access_only: true, limit: 3 });
+    expect(r.text).toContain("Papers by \"Ada Lovelace\", most cited first");
+    expect(r.text).toContain("Paper 7");
+    const u = seen[seen.length - 1];
+    expect(u.searchParams.get("filter")).toBe("raw_author_name.search:Ada Lovelace,from_publication_date:2019-01-01,is_oa:true");
+    expect(u.searchParams.get("sort")).toBe("cited_by_count:desc");
+    expect(u.searchParams.get("per_page")).toBe("3");
+    expect(u.searchParams.get("mailto")).toBe("me@example.com");
+    const empty = await call("list_author_papers", { author: "Nobody" });
+    expect(empty.isError).toBe(false);
+    expect(empty.text).toContain("No papers found for author \"Nobody\"");
+  });
   it("finds related and citing papers", async () => {
     expect((await call("related_papers", { paper: "W2", limit: 2 })).text).toContain("Paper 10");
+    const alt = await call("get_related_work", { paper: "W2", limit: 2 });
+    expect(alt.text).toContain("Related work for \"Paper 2\"");
+    expect(alt.text).toContain("Paper 10");
     expect((await call("cited_by", { paper: "W2" })).text).toContain("Paper 500");
   });
   it("returns a typed not found error that suggests a title search or a DOI check", async () => {

@@ -10,8 +10,14 @@
 ## Tools
 - search_papers
 - get_paper
+- get_paper_by_doi
+- find_open_access_pdf
 - related_papers
+- get_related_work
 - cited_by
+- list_author_papers
+
+Each tool description states its inputs and one example prompt.
 
 ## Links
 - Source and README, https://github.com/AnonymousOnyx22/paper-finder-student-mcp

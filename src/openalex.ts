@@ -11,13 +11,14 @@ export interface Work {
   authorships?: { author?: { display_name?: string } }[];
   primary_location?: { source?: { display_name?: string } | null } | null;
   open_access?: { is_oa?: boolean; oa_url?: string | null };
+  best_oa_location?: { pdf_url?: string | null; landing_page_url?: string | null } | null;
   abstract_inverted_index?: Record<string, number[]> | null;
   related_works?: string[];
   type?: string;
 }
 
 const FIELDS = "id,doi,display_name,publication_year,cited_by_count,authorships,primary_location,open_access,type";
-const FULL_FIELDS = FIELDS + ",abstract_inverted_index,related_works";
+const FULL_FIELDS = FIELDS + ",abstract_inverted_index,related_works,best_oa_location";
 
 export function shortId(id: string): string {
   return id.replace(/^https?:\/\/openalex\.org\//i, "");
@@ -96,6 +97,18 @@ export async function search(api: OpenAlex, query: string, opts: { fromYear?: nu
 
 export async function getWork(api: OpenAlex, ref: string): Promise<Work> {
   return getJson<Work>(api, `/works/${normalizeRef(ref)}`, params(api, { select: FULL_FIELDS }), ref);
+}
+
+export async function authorPapers(
+  api: OpenAlex,
+  author: string,
+  opts: { fromYear?: number; openAccessOnly?: boolean; limit: number },
+): Promise<Work[]> {
+  const filters = [`raw_author_name.search:${author}`];
+  if (opts.fromYear) filters.push(`from_publication_date:${opts.fromYear}-01-01`);
+  if (opts.openAccessOnly) filters.push("is_oa:true");
+  const res: any = await getJson<any>(api, "/works", params(api, { filter: filters.join(","), sort: "cited_by_count:desc", per_page: opts.limit, select: FIELDS }));
+  return res.results ?? [];
 }
 
 export async function related(api: OpenAlex, ref: string, limit: number): Promise<{ base: Work; works: Work[] }> {
