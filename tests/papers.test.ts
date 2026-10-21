@@ -4,7 +4,7 @@ import type { AddressInfo } from "node:net";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { createServer, makeApi } from "../src/server.js";
-import { abstractOf, nameMatch, normalizeRef, spellingMatch } from "../src/openalex.js";
+import { abstractOf, nameMatch, normalizeRef, snippetOf, spellingMatch } from "../src/openalex.js";
 
 const work = (n: number, extra: Record<string, unknown> = {}) => ({
   id: `https://openalex.org/W${n}`,
@@ -17,6 +17,9 @@ const work = (n: number, extra: Record<string, unknown> = {}) => ({
   open_access: { is_oa: n % 2 === 0, oa_url: n % 2 === 0 ? `https://free.example/${n}` : null },
   ...extra,
 });
+
+/** An OpenAlex abstract index for a list of words in reading order. */
+const abstractIndex = (words: string[]) => Object.fromEntries(words.map((w, i) => [w, [i]]));
 
 const authorProfile = (id: string, name: string, works = 5, cited = 50, alternatives: string[] = []) => ({
   id: `https://openalex.org/${id}`,
@@ -74,7 +77,7 @@ beforeAll(async () => {
       if (filter.startsWith("raw_author_name.search:Jon Deweey")) return json({ results: [] });
       if (filter.toLowerCase().includes("ratelimit")) return json({ error: "Rate limit exceeded" }, 429);
       if (filter.startsWith("raw_author_name.search:")) return json({ results: [work(7), work(8)] });
-      return json({ results: [work(2), work(3)] });
+      return json({ results: [work(2, { abstract_inverted_index: abstractIndex(["Spaced", "repetition", "raises", "recall", "in", "students."]) }), work(3, { abstract_inverted_index: abstractIndex(["A", "study", "of", "testing", "effects."]) })] });
     }
     if (url.pathname === "/works/doi:10.1000/ratelimited") return json({ error: "Rate limit exceeded" }, 429);
     if (url.pathname === "/works/doi:10.1000/p3") return json(work(3));
@@ -116,6 +119,14 @@ describe("helpers", () => {
     expect(spellingMatch("Jon Deweey", "Jonathan James Deeks")).toBeLessThan(0.85);
     expect(spellingMatch("John Dewey", "John Dewey")).toBe(1);
   });
+  it("cuts an abstract down to one short line", () => {
+    expect(snippetOf({ Hello: [0], world: [1], tested: [2] })).toBe("Hello world tested");
+    expect(snippetOf({ "Spaced": [0], "repetition": [1], "helps": [2], "students.": [3] })).toBe("Spaced repetition helps students.");
+    expect(snippetOf(undefined)).toBe("");
+    const long = snippetOf(abstractIndex(Array.from({ length: 120 }, (_, i) => `word${i}`)));
+    expect(long.length).toBeLessThanOrEqual(203);
+    expect(long.endsWith("...")).toBe(true);
+  });
 });
 
 describe("MCP tools", () => {
@@ -156,6 +167,57 @@ describe("MCP tools", () => {
     expect(filtered.isError).toBe(false);
     expect(filtered.text).toContain("open_access_only");
     expect(filtered.text).toContain("from_year");
+    const typed = await call("search_papers", { query: "nothing", type: "preprint" });
+    expect(typed.isError).toBe(false);
+    expect(typed.text).toContain("type");
+  });
+  it("orders search results by the most cited papers first", async () => {
+    const r = await call("search_papers", { query: "spaced repetition", sort: "cited_by_count:desc", limit: 2 });
+    expect(r.isError).toBe(false);
+    expect(r.text).toContain("most cited first");
+    expect(seen[seen.length - 1].searchParams.get("sort")).toBe("cited_by_count:desc");
+  });
+  it("orders search results by the newest papers first", async () => {
+    const r = await call("search_papers", { query: "spaced repetition", sort: "publication_date:desc" });
+    expect(r.text).toContain("newest first");
+    expect(seen[seen.length - 1].searchParams.get("sort")).toBe("publication_date:desc");
+  });
+  it("keeps the OpenAlex order when no sort is asked for", async () => {
+    const r = await call("search_papers", { query: "spaced repetition" });
+    expect(r.text).toContain("in the order OpenAlex ranks them");
+    expect(seen[seen.length - 1].searchParams.get("sort")).toBeNull();
+    const asked = await call("search_papers", { query: "spaced repetition", sort: "relevance" });
+    expect(asked.text).toContain("in the order OpenAlex ranks them");
+    expect(seen[seen.length - 1].searchParams.get("sort")).toBeNull();
+  });
+  it("keeps search results to one kind of paper", async () => {
+    const journal = await call("search_papers", { query: "spaced repetition", type: "journal_article" });
+    expect(journal.text).toContain("journal articles only");
+    expect(seen[seen.length - 1].searchParams.get("filter")).toBe("type:article");
+    await call("search_papers", { query: "spaced repetition", type: "preprint" });
+    expect(seen[seen.length - 1].searchParams.get("filter")).toBe("type:preprint");
+    await call("search_papers", { query: "spaced repetition", type: "book_chapter" });
+    expect(seen[seen.length - 1].searchParams.get("filter")).toBe("type:book-chapter");
+  });
+  it("keeps the type and the other filters together in one query", async () => {
+    await call("search_papers", { query: "spaced repetition", from_year: 2021, open_access_only: true, type: "journal_article", limit: 2 });
+    expect(seen[seen.length - 1].searchParams.get("filter")).toBe(
+      "from_publication_date:2021-01-01,is_oa:true,type:article",
+    );
+  });
+  it("shows a one line abstract under each search result", async () => {
+    const r = await call("search_papers", { query: "spaced repetition", limit: 2 });
+    expect(r.text).toContain("Abstract: Spaced repetition raises recall in students.");
+    expect(r.text).toContain("Abstract: A study of testing effects.");
+    expect(seen[seen.length - 1].searchParams.get("select")).toContain("abstract_inverted_index");
+  });
+  it("refuses a sort order or a paper type it does not know", async () => {
+    const badSort = await call("search_papers", { query: "spaced repetition", sort: "nonsense" });
+    expect(badSort.isError).toBe(true);
+    expect(badSort.text).toContain("cited_by_count:desc");
+    const badType = await call("search_papers", { query: "spaced repetition", type: "nonsense" });
+    expect(badType.isError).toBe(true);
+    expect(badType.text).toContain("journal_article");
   });
   it("shows an abstract for a DOI", async () => {
     const r = await call("get_paper", { paper: "10.1000/p2" });

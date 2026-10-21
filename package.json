@@ -1,7 +1,7 @@
 {
   "name": "paper-finder-student-mcp",
   "version": "0.1.2",
-  "description": "Academic paper search MCP server. Search scholarly papers, list the papers of one author, do a citation lookup by DOI, find open access copies and related papers through OpenAlex. No API key needed.",
+  "description": "Academic paper search MCP server. Search scholarly papers and sort them by citations or date, keep only one kind of paper, list the papers of one author, do a citation lookup by DOI, find open access copies and related papers through OpenAlex. No API key needed.",
   "type": "module",
   "main": "build/src/index.js",
   "bin": {
@@ -38,6 +38,8 @@
     "doi lookup",
     "citation lookup",
     "cited by",
+    "most cited papers",
+    "sort by citations",
     "related papers",
     "author papers",
     "author lookup",

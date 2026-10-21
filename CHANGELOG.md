@@ -15,6 +15,9 @@
 
 ## Unreleased
 
+- `search_papers` takes a `sort` input, so a search can ask for the most cited papers on a topic with `cited_by_count:desc`, or the newest papers with `publication_date:desc`. Without it the results stay in the OpenAlex relevance order. The tool also takes a `type` input, `journal_article`, `preprint` or `book_chapter`, to keep the results to one kind of paper. Both inputs are optional, so saved prompts keep working as they are.
+- Search results now carry a one line abstract, cut from the OpenAlex abstract, so a paper can be judged from the search result before it is opened.
+- The search results now say how they are ordered and which kind of paper they are, and a search that finds nothing names the type filter when that is the likely reason.
 - `list_author_papers` now looks the author name up in the OpenAlex author records and then takes the papers from that author id, so initials, a different order of the name parts and other spellings of the same person still find the papers, and papers by other people with a similar byline no longer creep in. The tool also accepts an OpenAlex author id such as `A5108843829`, it lists the other profiles that carry the same name, it points out when it had to settle for the closest match, and it still falls back to matching the name as it is written on the papers when OpenAlex has no record for it.
 - A test now keeps the tool count, names, descriptions and parameters the same across the README tool table, llms.txt and glama.json, and checks them against the tools in src/tools.ts, so a directory never lists a tool the server dropped or an old description for one.
 - The README and llms.txt no longer quote a works count for OpenAlex, since that number goes out of date, and the text that said how many tools there are no longer states a number, so it stays true when a tool is added.

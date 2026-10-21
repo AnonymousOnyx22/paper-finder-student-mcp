@@ -4,7 +4,7 @@
 [![downloads](https://img.shields.io/npm/dm/paper-finder-student-mcp.svg)](https://www.npmjs.com/package/paper-finder-student-mcp)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Paper Finder MCP is an academic paper search MCP server. Ask your AI to find real scholarly papers for an essay or research project, with authors, year, citation counts, DOIs and a free to read link when one exists. Results come straight from [OpenAlex](https://openalex.org), a free open catalog of scholarly works, so the papers are real, not invented. Free forever, no account and no key. Students often type things like 'find 5 sources for my essay on spaced repetition' or 'citations for my literature review'.
+Paper Finder MCP is an academic paper search MCP server. Ask your AI to find real scholarly papers for an essay or research project, with authors, year, citation counts, DOIs, a one line abstract and a free to read link when one exists. Sort by citation count to get the most cited papers on a topic, or by date to get the newest ones. Results come straight from [OpenAlex](https://openalex.org), a free open catalog of scholarly works, so the papers are real, not invented. Free forever, no account and no key. Students often type things like 'find 5 sources for my essay on spaced repetition' or 'citations for my literature review'.
 
 ## Install
 
@@ -30,6 +30,8 @@ Restart your AI app, then try one of the prompts below. You need Node.js 20 or n
 ## Example prompts
 
 - "Find open access papers on spaced repetition and exam performance since 2020."
+- "Find the most cited papers on spaced repetition since 2020."
+- "Show me the newest journal articles about spaced repetition."
 - "Find 5 sources for my essay on spaced repetition."
 - "Citations for my literature review."
 - "Get the paper with DOI 10.1038/nature14539 and show me the abstract."
@@ -58,20 +60,21 @@ Paper Finder MCP is the one where every line has a live catalog record behind it
 
 | Tool | What it does | Parameters |
 | --- | --- | --- |
-| `search_papers` | Search scholarly works by keywords, with optional year and open access filters | `query`, `from_year`, `open_access_only`, `limit` |
+| `search_papers` | Search scholarly works by keywords, with optional year, open access, type and order settings | `query`, `from_year`, `open_access_only`, `type`, `sort`, `limit` |
 | `get_paper` | Details for one paper from its DOI, doi.org link or OpenAlex id, including the abstract | `paper`, `doi` |
 | `find_open_access_pdf` | The free to read copy of one paper, preferring a PDF link, or a plain note that none exists | `paper` |
 | `related_papers` | Papers OpenAlex marks as related to a paper | `paper`, `limit` |
 | `cited_by` | Newer papers that cite a paper, most recent first | `paper`, `limit` |
 | `list_author_papers` | Papers by one author, most cited first, with the name looked up in the OpenAlex author records | `author`, `from_year`, `open_access_only`, `limit` |
 
-Every tool description states its inputs and one example prompt, so clients can pick the right tool without reading this page. `paper` accepts a DOI like `10.1038/nature14539`, a doi.org link, or an OpenAlex id like `W2741809807`. `doi` accepts a DOI or doi.org link with no OpenAlex ids, and `get_paper` takes either `paper` or `doi`, so a DOI lookup has one home. `limit` is 1 to 25, default 8. `list_author_papers` looks the name up in the OpenAlex author records first and then takes the papers from that author id, so `J. Smith`, `Smith, John` and `John Smith` all reach the same papers, even when the name on the paper is written differently. When the name cannot be resolved that way, the tool matches the name as it is written on the papers instead.
+Every tool description states its inputs and one example prompt, so clients can pick the right tool without reading this page. `paper` accepts a DOI like `10.1038/nature14539`, a doi.org link, or an OpenAlex id like `W2741809807`. `doi` accepts a DOI or doi.org link with no OpenAlex ids, and `get_paper` takes either `paper` or `doi`, so a DOI lookup has one home. `limit` is 1 to 25, default 8. `search_papers` shows the title, authors, year, venue, citations, DOI and a one line abstract for every hit, so you can judge a paper before you open it. `sort` takes `relevance` (the default OpenAlex order), `cited_by_count:desc` for the most cited papers on the topic first, or `publication_date:desc` for the newest papers first. `type` takes `journal_article`, `preprint` or `book_chapter` to keep the results to one kind of paper. `list_author_papers` looks the name up in the OpenAlex author records first and then takes the papers from that author id, so `J. Smith`, `Smith, John` and `John Smith` all reach the same papers, even when the name on the paper is written differently. When the name cannot be resolved that way, the tool matches the name as it is written on the papers instead.
 
 `get_paper_by_doi` and `get_related_work` still exist as deprecated aliases so saved prompts keep working. They do the same work as `get_paper` with `doi` and `related_papers`, and new prompts should use those two instead.
 
 ## Good to know
 
 - Lookups that miss are flagged as errors with a stable code, not empty results. A wrong or unknown reference returns a not found error that suggests searching by the title or checking the DOI format, and a rate limit returns an error that says to wait about a minute and retry. A missing free copy is not an error, `find_open_access_pdf` just says that none was found.
+- `sort` reorders the papers OpenAlex matched. It does not change which papers match, so on a broad topic the most cited match can be a famous paper that only mentions the topic. Ask for `relevance` when you want the closest match first.
 - Author names go through the OpenAlex author records, so a name that is written in another form on the papers still finds them. OpenAlex sometimes keeps more than one profile for a name. In that case the tool shows the profile whose name matches best and has the most papers, and it lists the others. You can pass one of those ids, such as `A5108843829`, as `author` to see that profile.
 - Citation counts and open access links come from OpenAlex and can be a little behind the publisher.
 - If you want faster, more reliable service for heavy use, set `OPENALEX_EMAIL` to your own email. OpenAlex asks for it so they can reach you, and it is sent only to OpenAlex.

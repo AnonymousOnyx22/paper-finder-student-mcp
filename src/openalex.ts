@@ -19,6 +19,21 @@ export interface Work {
 
 const FIELDS = "id,doi,display_name,publication_year,cited_by_count,authorships,primary_location,open_access,type";
 const FULL_FIELDS = FIELDS + ",abstract_inverted_index,related_works,best_oa_location";
+const SEARCH_FIELDS = FIELDS + ",abstract_inverted_index";
+
+/** The kinds of paper a search can ask for, mapped to the OpenAlex type filter value. */
+export const WORK_TYPES: Record<string, string | undefined> = {
+  journal_article: "article",
+  preprint: "preprint",
+  book_chapter: "book-chapter",
+};
+
+/** The order a search can ask for, mapped to the OpenAlex sort value. Relevance is the OpenAlex default. */
+export const SEARCH_SORTS: Record<string, string | undefined> = {
+  relevance: undefined,
+  "cited_by_count:desc": "cited_by_count:desc",
+  "publication_date:desc": "publication_date:desc",
+};
 
 export function shortId(id: string): string {
   return id.replace(/^https?:\/\/openalex\.org\//i, "");
@@ -43,20 +58,35 @@ export function abstractOf(index?: Record<string, number[]> | null): string {
   return words.filter((w) => w !== undefined).join(" ");
 }
 
-export function line(w: Work): string {
+/** The first sentence of an abstract, cut to one short line so a result stays readable. */
+export function snippetOf(index?: Record<string, number[]> | null, max = 200): string {
+  const text = abstractOf(index).trim();
+  if (!text) return "";
+  const first = text.split(/(?<=[.!?])\s+/)[0] ?? text;
+  if (first.length <= max) return first;
+  const cut = first.slice(0, max);
+  const space = cut.lastIndexOf(" ");
+  const head = space > 0 ? cut.slice(0, space) : cut;
+  return `${head.replace(/[,;:.\s]+$/, "")}...`;
+}
+
+export function line(w: Work, opts: { snippet?: boolean } = {}): string {
   const authors = (w.authorships ?? []).map((a) => a.author?.display_name).filter(Boolean) as string[];
   const who = authors.length > 3 ? `${authors.slice(0, 3).join(", ")}, et al.` : authors.join(", ");
   const venue = w.primary_location?.source?.display_name;
   const doi = w.doi ? w.doi.replace(/^https?:\/\/doi\.org\//i, "") : "";
   const oa = w.open_access?.is_oa && w.open_access.oa_url ? `Free to read, ${w.open_access.oa_url}` : "No free copy found";
-  return [
+  const parts = [
     `${w.display_name ?? w.title ?? "Untitled"} (${w.publication_year ?? "year unknown"})`,
     who ? `  ${who}${venue ? `, ${venue}` : ""}` : venue ? `  ${venue}` : "",
     `  ${w.cited_by_count ?? 0} citations. ${doi ? `DOI ${doi}. ` : ""}${shortId(w.id)}`,
     `  ${oa}`,
-  ]
-    .filter(Boolean)
-    .join("\n");
+  ];
+  if (opts.snippet) {
+    const snippet = snippetOf(w.abstract_inverted_index);
+    if (snippet) parts.push(`  Abstract: ${snippet}`);
+  }
+  return parts.filter(Boolean).join("\n");
 }
 
 export interface AuthorProfile {
@@ -112,11 +142,26 @@ async function getJson<T>(
   }
 }
 
-export async function search(api: OpenAlex, query: string, opts: { fromYear?: number; openAccessOnly?: boolean; limit: number }): Promise<Work[]> {
+export async function search(
+  api: OpenAlex,
+  query: string,
+  opts: { fromYear?: number; openAccessOnly?: boolean; sort?: string; type?: string; limit: number },
+): Promise<Work[]> {
   const filters: string[] = [];
   if (opts.fromYear) filters.push(`from_publication_date:${opts.fromYear}-01-01`);
   if (opts.openAccessOnly) filters.push("is_oa:true");
-  const res: any = await getJson<any>(api, "/works", params(api, { search: query, filter: filters.join(",") || undefined, per_page: opts.limit, select: FIELDS }));
+  if (opts.type) filters.push(`type:${opts.type}`);
+  const res: any = await getJson<any>(
+    api,
+    "/works",
+    params(api, {
+      search: query,
+      filter: filters.join(",") || undefined,
+      sort: opts.sort,
+      per_page: opts.limit,
+      select: SEARCH_FIELDS,
+    }),
+  );
   return res.results ?? [];
 }
 
