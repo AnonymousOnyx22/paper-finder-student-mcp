@@ -36,6 +36,21 @@ Restart your AI app, then try one of the prompts below. You need Node.js 20 or n
 - "Who cited DOI 10.48550/arXiv.1706.03762?"
 - "List papers by John Dewey on education since 1950."
 
+## How it compares
+
+Three ways to get papers for an essay, and what each one actually gives you. This section has a stable anchor at `README.md#how-it-compares` if you want to link someone here.
+
+| | Paper Finder MCP | Asking ChatGPT | Semantic Scholar MCP |
+| --- | --- | --- | --- |
+| Where the answers come from | OpenAlex, queried live each time you ask | Whatever the chat app does on its own, with no fixed catalog behind the answer | The Semantic Scholar catalog, queried live each time you ask |
+| Can you open the source | Yes, every result carries a DOI or OpenAlex id you can open | A paper it names may not exist, and there is often nothing to open | Yes, results carry identifiers you can open |
+| Free to read copy | `find_open_access_pdf` returns a link when one exists, or says plainly that none was found | It may offer a link, but nothing checks it against a catalog | Depends on what that server exposes, see its own README |
+| Citations and related work | `cited_by`, `related_papers`, `get_related_work` and `list_author_papers`, all in the same chat | You can ask, but you get one guess at a time, not a list read from an index | It has its own tools, check that project's README for which ones |
+| Account, key or plan | None, no account and no key | You need an account with that service to ask | Depends on that project, check its own docs |
+| Where it runs | Inside your MCP client, next to your other tools | In a chat window | Inside your MCP client |
+
+Paper Finder MCP is the one where every line has a live catalog record behind it and the follow up questions are tools rather than more guessing. The Semantic Scholar MCP column describes those servers in general, since they are separate projects with their own features and setup. Always open the paper itself before you cite it.
+
 ## Tools
 
 | Tool | What it does | Parameters |
