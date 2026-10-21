@@ -15,6 +15,7 @@
 
 ## Unreleased
 
+- Add POST.md, the copy for a directory or a weekly list: one paragraph pitch, the `npx -y paper-finder-student-mcp` block, the comparison row and three example prompts. A test keeps the npx block on the package name, the comparison row on the README table and the example prompts on the prompts the tools answer.
 - The README first screen now has an install snippet for Claude Desktop, Cursor and VS Code, so each app gets the config file it reads and the key it calls. Cursor reads `mcpServers` in `~/.cursor/mcp.json`, and VS Code reads `servers` in `.vscode/mcp.json` with the `type` set to `stdio`.
 - The README first screen now shows a real `search_papers` result for "spaced repetition", so people can see the title, authors, year, venue, citation count, DOI, OpenAlex id, free to read link and one line abstract that come back before they install anything.
 - The opening paragraph of the README is now four short paragraphs instead of one long block.
