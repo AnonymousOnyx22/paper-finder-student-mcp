@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.1.2
+
+- SUMR: Rewrite package.json description and keywords for npm search
+- Add a comparison table to the README
+
 ## 0.1.1
 
 - Rewrite metadata for academic paper search mcp
