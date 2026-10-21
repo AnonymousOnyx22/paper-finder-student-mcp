@@ -4,7 +4,7 @@
 [![downloads](https://img.shields.io/npm/dm/paper-finder-student-mcp.svg)](https://www.npmjs.com/package/paper-finder-student-mcp)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Paper Finder MCP is an academic paper search MCP server. Ask your AI to find real scholarly papers for an essay or research project, with authors, year, citation counts, DOIs and a free to read link when one exists. Results come straight from [OpenAlex](https://openalex.org), a free open catalog of more than 250 million works, so the papers are real, not invented. Free forever, no account and no key. Students often type things like 'find 5 sources for my essay on spaced repetition' or 'citations for my literature review'.
+Paper Finder MCP is an academic paper search MCP server. Ask your AI to find real scholarly papers for an essay or research project, with authors, year, citation counts, DOIs and a free to read link when one exists. Results come straight from [OpenAlex](https://openalex.org), a free open catalog of scholarly works, so the papers are real, not invented. Free forever, no account and no key. Students often type things like 'find 5 sources for my essay on spaced repetition' or 'citations for my literature review'.
 
 ## Install
 
