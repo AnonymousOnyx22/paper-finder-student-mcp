@@ -32,7 +32,7 @@ Restart your AI app, then try one of the prompts below. You need Node.js 20 or n
 - "Find open access papers on spaced repetition and exam performance since 2020."
 - "Get the paper with DOI 10.1038/nature14539 and show me the abstract."
 - "Find a free PDF of this paper, DOI 10.1038/nature14539."
-- "What related work should I read for DOI 10.48550/arXiv.1706.03762?"
+- "What papers are related to DOI 10.48550/arXiv.1706.03762?"
 - "Who cited DOI 10.48550/arXiv.1706.03762?"
 - "List papers by John Dewey on education since 1950."
 
@@ -45,7 +45,7 @@ Three ways to get papers for an essay, and what each one actually gives you. Thi
 | Where the answers come from | OpenAlex, queried live each time you ask | Whatever the chat app does on its own, with no fixed catalog behind the answer | The Semantic Scholar catalog, queried live each time you ask |
 | Can you open the source | Yes, every result carries a DOI or OpenAlex id you can open | A paper it names may not exist, and there is often nothing to open | Yes, results carry identifiers you can open |
 | Free to read copy | `find_open_access_pdf` returns a link when one exists, or says plainly that none was found | It may offer a link, but nothing checks it against a catalog | Depends on what that server exposes, see its own README |
-| Citations and related work | `cited_by`, `related_papers`, `get_related_work` and `list_author_papers`, all in the same chat | You can ask, but you get one guess at a time, not a list read from an index | It has its own tools, check that project's README for which ones |
+| Citations and related work | `cited_by`, `related_papers` and `list_author_papers`, all in the same chat | You can ask, but you get one guess at a time, not a list read from an index | It has its own tools, check that project's README for which ones |
 | Account, key or plan | None, no account and no key | You need an account with that service to ask | Depends on that project, check its own docs |
 | Where it runs | Inside your MCP client, next to your other tools | In a chat window | Inside your MCP client |
 
@@ -56,15 +56,15 @@ Paper Finder MCP is the one where every line has a live catalog record behind it
 | Tool | What it does | Parameters |
 | --- | --- | --- |
 | `search_papers` | Search scholarly works by keywords, with optional year and open access filters | `query`, `from_year`, `open_access_only`, `limit` |
-| `get_paper` | Details for one paper from its DOI or OpenAlex id, including the abstract | `paper` |
-| `get_paper_by_doi` | The same details, looked up by DOI only, with a helpful error for anything that is not a DOI | `doi` |
+| `get_paper` | Details for one paper from its DOI, doi.org link or OpenAlex id, including the abstract | `paper`, `doi` |
 | `find_open_access_pdf` | The free to read copy of one paper, preferring a PDF link, or a plain note that none exists | `paper` |
 | `related_papers` | Papers OpenAlex marks as related to a paper | `paper`, `limit` |
-| `get_related_work` | The same list as `related_papers`, under a verb-first name | `paper`, `limit` |
 | `cited_by` | Newer papers that cite a paper, most recent first | `paper`, `limit` |
 | `list_author_papers` | Papers by one author, most cited first | `author`, `from_year`, `open_access_only`, `limit` |
 
-Every tool description states its inputs and one example prompt, so clients can pick the right tool without reading this page. `paper` accepts a DOI like `10.1038/nature14539`, a doi.org link, or an OpenAlex id like `W2741809807`. `doi` accepts only a DOI or doi.org link. `limit` is 1 to 25, default 8. `list_author_papers` matches the author name as it is written on the papers, so exact spelling matters.
+Every tool description states its inputs and one example prompt, so clients can pick the right tool without reading this page. `paper` accepts a DOI like `10.1038/nature14539`, a doi.org link, or an OpenAlex id like `W2741809807`. `doi` accepts a DOI or doi.org link with no OpenAlex ids, and `get_paper` takes either `paper` or `doi`, so a DOI lookup has one home. `limit` is 1 to 25, default 8. `list_author_papers` matches the author name as it is written on the papers, so exact spelling matters.
+
+`get_paper_by_doi` and `get_related_work` still exist as deprecated aliases so saved prompts keep working. They do the same work as `get_paper` with `doi` and `related_papers`, and new prompts should use those two instead.
 
 ## Good to know
 

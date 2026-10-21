@@ -113,6 +113,17 @@ describe("MCP tools", () => {
     const r = await call("get_paper", { paper: "10.1000/p2" });
     expect(r.text).toContain("Abstract\nHello world tested");
   });
+  it("gets a paper through the doi input and says what is missing when neither input is given", async () => {
+    const r = await call("get_paper", { doi: "https://doi.org/10.1000/p2" });
+    expect(r.text).toContain("Abstract\nHello world tested");
+    const bad = await call("get_paper", { doi: "W2" });
+    expect(bad.isError).toBe(true);
+    expect(bad.code).toBe("invalid_ref");
+    const missing = await call("get_paper");
+    expect(missing.isError).toBe(true);
+    expect(missing.code).toBe("invalid_ref");
+    expect(missing.text).toContain("needs a paper or a doi");
+  });
   it("gets a paper by DOI only and points elsewhere for an OpenAlex id", async () => {
     const r = await call("get_paper_by_doi", { doi: "https://doi.org/10.1000/p2" });
     expect(r.text).toContain("Abstract\nHello world tested");

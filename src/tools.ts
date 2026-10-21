@@ -12,6 +12,27 @@ function numbered(works: Work[]): string {
   return works.map((w, i) => `${i + 1}. ${line(w)}`).join("\n\n");
 }
 
+function bareDoi(input: string, hint: string): string {
+  const bare = input.trim().replace(/^https?:\/\/(dx\.)?doi\.org\//i, "").replace(/^doi:\s*/i, "");
+  if (!/^10\.\d{4,9}\/\S+$/.test(bare)) throw new ToolError(`"${input}" is not a DOI. ${hint}`, "invalid_ref");
+  return bare;
+}
+
+async function paperDetails(api: OpenAlex, reference: string): Promise<string> {
+  const w = await getWork(api, reference);
+  const abs = abstractOf(w.abstract_inverted_index);
+  return `${line(w)}\n\n${abs ? `Abstract\n${abs}` : "No abstract is available for this paper."}`;
+}
+
+function relatedRun(heading: string) {
+  return async (a: { paper: string; limit: number }, api: OpenAlex): Promise<string> => {
+    const { base, works } = await related(api, a.paper, a.limit);
+    if (works.length === 0)
+      return `OpenAlex lists no related papers for "${base.display_name ?? a.paper}". Try cited_by to find papers that cite it.`;
+    return `${heading} "${base.display_name}"\n\n` + numbered(works);
+  };
+}
+
 function noAuthorMatches(author: string, usedYear?: number, usedOa?: boolean): string {
   const fixes = ["Try the name as it appears on the paper, for example John Smith."];
   if (usedOa) fixes.push("Set open_access_only to false.");
@@ -46,31 +67,25 @@ export const tools: ToolDef<OpenAlex>[] = [
     name: "get_paper",
     title: "Get a paper",
     description:
-      "Details for one paper, including the abstract and a free to read link when one exists. A wrong or unknown reference returns a not found error that suggests searching by title or checking the DOI format. Inputs: paper (required, a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807). Example prompt: 'show me the abstract of DOI 10.1038/nature14539.'",
-    inputSchema: { paper: ref },
+      "Details for one paper, including the abstract and a free to read link when one exists. A wrong or unknown reference returns a not found error that suggests searching by title or checking the DOI format. Inputs: paper (optional, a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807), doi (optional, a DOI like 10.1038/nature14539 or a doi.org link, no OpenAlex ids). Give paper or doi, and paper wins if you give both. Example prompt: 'show me the abstract of DOI 10.1038/nature14539.'",
+    inputSchema: {
+      paper: ref.optional().describe("A DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807. Give this or doi."),
+      doi: doi.optional().describe("A DOI like 10.1038/nature14539, or a doi.org link. No OpenAlex ids here. Give this or paper."),
+    },
     run: async (a, api) => {
-      const w = await getWork(api, a.paper);
-      const abs = abstractOf(w.abstract_inverted_index);
-      return `${line(w)}\n\n${abs ? `Abstract\n${abs}` : "No abstract is available for this paper."}`;
+      if (a.paper) return paperDetails(api, a.paper);
+      if (a.doi) return paperDetails(api, bareDoi(a.doi, "Use a DOI like 10.1038/nature14539, or pass an OpenAlex id like W2741809807 in paper."));
+      throw new ToolError("get_paper needs a paper or a doi. Use a DOI like 10.1038/nature14539 or an OpenAlex id like W2741809807.", "invalid_ref");
     },
   },
   {
     name: "get_paper_by_doi",
     title: "Get a paper by DOI",
     description:
-      "Details for one paper looked up by DOI only, including the abstract and a free to read link when one exists. An OpenAlex id or a malformed DOI returns an invalid ref error that points at get_paper. Inputs: doi (required, a DOI like 10.1038/nature14539 or a doi.org link). Example prompt: 'get the paper with DOI 10.1038/nature14539.'",
+      "Deprecated, use get_paper with the doi input instead. Kept so saved prompts keep working. Details for one paper looked up by DOI only, including the abstract and a free to read link when one exists. An OpenAlex id or a malformed DOI returns an invalid ref error that points at get_paper. Inputs: doi (required, a DOI like 10.1038/nature14539 or a doi.org link). Example prompt: 'get the paper with DOI 10.1038/nature14539.'",
     inputSchema: { doi },
-    run: async (a, api) => {
-      const bare = a.doi.trim().replace(/^https?:\/\/(dx\.)?doi\.org\//i, "").replace(/^doi:\s*/i, "");
-      if (!/^10\.\d{4,9}\/\S+$/.test(bare))
-        throw new ToolError(
-          `"${a.doi}" is not a DOI. get_paper_by_doi takes a DOI like 10.1038/nature14539. Use get_paper if you have an OpenAlex id like W2741809807.`,
-          "invalid_ref",
-        );
-      const w = await getWork(api, bare);
-      const abs = abstractOf(w.abstract_inverted_index);
-      return `${line(w)}\n\n${abs ? `Abstract\n${abs}` : "No abstract is available for this paper."}`;
-    },
+    run: async (a, api) =>
+      paperDetails(api, bareDoi(a.doi, "get_paper_by_doi takes a DOI like 10.1038/nature14539. Use get_paper if you have an OpenAlex id like W2741809807.")),
   },
   {
     name: "find_open_access_pdf",
@@ -95,23 +110,15 @@ export const tools: ToolDef<OpenAlex>[] = [
     description:
       "Papers that OpenAlex lists as related to a given paper. Inputs: paper (required, a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807), limit (optional, 1 to 25, default 8). Example prompt: 'what papers are related to DOI 10.48550/arXiv.1706.03762?'",
     inputSchema: { paper: ref, limit },
-    run: async (a, api) => {
-      const { base, works } = await related(api, a.paper, a.limit);
-      if (works.length === 0) return `OpenAlex lists no related papers for "${base.display_name ?? a.paper}". Try cited_by to find papers that cite it.`;
-      return `Related to "${base.display_name}"\n\n` + numbered(works);
-    },
+    run: relatedRun("Related to"),
   },
   {
     name: "get_related_work",
     title: "Get related work",
     description:
-      "Other papers on the same topic as one paper. Returns the same list as related_papers, kept as a verb-first name for clients that prefer it. Inputs: paper (required, a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807), limit (optional, 1 to 25, default 8). Example prompt: 'what related work should I read for DOI 10.48550/arXiv.1706.03762?'",
+      "Deprecated, use related_papers instead, it returns the same list. Kept so saved prompts keep working. Other papers on the same topic as one paper. Inputs: paper (required, a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807), limit (optional, 1 to 25, default 8). Example prompt: 'what related work should I read for DOI 10.48550/arXiv.1706.03762?'",
     inputSchema: { paper: ref, limit },
-    run: async (a, api) => {
-      const { base, works } = await related(api, a.paper, a.limit);
-      if (works.length === 0) return `OpenAlex lists no related work for "${base.display_name ?? a.paper}". Try cited_by to find papers that cite it.`;
-      return `Related work for "${base.display_name}"\n\n` + numbered(works);
-    },
+    run: relatedRun("Related work for"),
   },
   {
     name: "cited_by",

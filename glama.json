@@ -4,7 +4,7 @@
     "AnonymousOnyx22"
   ],
   "name": "paper-finder-student-mcp",
-  "description": "Academic paper search MCP server. Search scholarly papers, find open access copies and related work through OpenAlex (https://openalex.org), with no key needed.",
+  "description": "Academic paper search MCP server. Search scholarly papers, find open access copies and related work through OpenAlex (https://openalex.org), with no key needed. Six main tools, plus two deprecated aliases kept for saved prompts.",
   "repository": {
     "url": "https://github.com/AnonymousOnyx22/paper-finder-student-mcp",
     "source": "github"
@@ -20,13 +20,8 @@
     },
     {
       "name": "get_paper",
-      "description": "Details for one paper, including the abstract and a free to read link when one exists. A wrong or unknown reference returns a not found error that suggests searching by title or checking the DOI format. Inputs: paper (required, a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807). Example prompt: 'show me the abstract of DOI 10.1038/nature14539.'",
-      "parameters": ["paper"]
-    },
-    {
-      "name": "get_paper_by_doi",
-      "description": "Details for one paper looked up by DOI only, including the abstract and a free to read link when one exists. An OpenAlex id or a malformed DOI returns an invalid ref error that points at get_paper. Inputs: doi (required, a DOI like 10.1038/nature14539 or a doi.org link). Example prompt: 'get the paper with DOI 10.1038/nature14539.'",
-      "parameters": ["doi"]
+      "description": "Details for one paper, including the abstract and a free to read link when one exists. A wrong or unknown reference returns a not found error that suggests searching by title or checking the DOI format. Inputs: paper (optional, a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807), doi (optional, a DOI like 10.1038/nature14539 or a doi.org link, no OpenAlex ids). Give paper or doi, and paper wins if you give both. Example prompt: 'show me the abstract of DOI 10.1038/nature14539.'",
+      "parameters": ["paper", "doi"]
     },
     {
       "name": "find_open_access_pdf",
@@ -36,11 +31,6 @@
     {
       "name": "related_papers",
       "description": "Papers that OpenAlex lists as related to a given paper. Inputs: paper (required, a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807), limit (optional, 1 to 25, default 8). Example prompt: 'what papers are related to DOI 10.48550/arXiv.1706.03762?'",
-      "parameters": ["paper", "limit"]
-    },
-    {
-      "name": "get_related_work",
-      "description": "Other papers on the same topic as one paper. Returns the same list as related_papers, kept as a verb-first name for clients that prefer it. Inputs: paper (required, a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807), limit (optional, 1 to 25, default 8). Example prompt: 'what related work should I read for DOI 10.48550/arXiv.1706.03762?'",
       "parameters": ["paper", "limit"]
     },
     {
