@@ -20,7 +20,8 @@ export interface Work {
 
 const FIELDS = "id,doi,display_name,publication_year,cited_by_count,authorships,primary_location,open_access,type";
 const FULL_FIELDS = FIELDS + ",abstract_inverted_index,related_works,best_oa_location";
-const SEARCH_FIELDS = FIELDS + ",abstract_inverted_index";
+/** The fields for a list of papers where every entry shows a one line abstract. */
+const LIST_FIELDS = FIELDS + ",abstract_inverted_index";
 
 /** The fields needed to read the reference list of a paper. */
 const REFERENCES_FIELDS = "id,display_name,referenced_works";
@@ -169,7 +170,7 @@ export async function search(
       filter: filters.join(",") || undefined,
       sort: opts.sort,
       per_page: opts.limit,
-      select: SEARCH_FIELDS,
+      select: LIST_FIELDS,
     }),
   );
   return res.results ?? [];
@@ -355,13 +356,13 @@ export async function related(api: OpenAlex, ref: string, limit: number): Promis
   const base = await getWork(api, ref);
   const ids = (base.related_works ?? []).slice(0, limit).map(shortId);
   if (ids.length === 0) return { base, works: [] };
-  const res: any = await getJson<any>(api, "/works", params(api, { filter: `openalex:${ids.join("|")}`, per_page: limit, select: FIELDS }));
+  const res: any = await getJson<any>(api, "/works", params(api, { filter: `openalex:${ids.join("|")}`, per_page: limit, select: LIST_FIELDS }));
   return { base, works: res.results ?? [] };
 }
 
 export async function citedBy(api: OpenAlex, ref: string, limit: number): Promise<{ base: Work; works: Work[] }> {
   const base = await getWork(api, ref);
-  const res: any = await getJson<any>(api, "/works", params(api, { filter: `cites:${shortId(base.id)}`, sort: "publication_date:desc", per_page: limit, select: FIELDS }));
+  const res: any = await getJson<any>(api, "/works", params(api, { filter: `cites:${shortId(base.id)}`, sort: "publication_date:desc", per_page: limit, select: LIST_FIELDS }));
   return { base, works: res.results ?? [] };
 }
 
@@ -404,7 +405,7 @@ export async function references(
     const group = chunks.slice(i, i + ID_PARALLEL);
     const res = await Promise.all(
       group.map((chunk) =>
-        getJson<any>(api, "/works", params(api, { filter: `openalex:${chunk.join("|")}`, sort: apiSort, per_page: limit, select: FIELDS })),
+        getJson<any>(api, "/works", params(api, { filter: `openalex:${chunk.join("|")}`, sort: apiSort, per_page: limit, select: LIST_FIELDS })),
       ),
     );
     pages.push(...res);

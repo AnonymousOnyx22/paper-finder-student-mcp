@@ -71,9 +71,15 @@ beforeAll(async () => {
       if (filter.startsWith("openalex:")) {
         const ids = filter.slice(9).split("|");
         if (ids.every((id) => id === "W9999")) return json({ results: [] });
-        return json({ results: ids.map((id) => work(Number(id.slice(1)))) });
+        return json({ results: ids.map((id) => work(Number(id.slice(1)), { abstract_inverted_index: abstractIndex(["Summary", "of", "paper", `${id}.`]) })) });
       }
-      if (filter.startsWith("cites:")) return json({ results: [work(500), work(501)] });
+      if (filter.startsWith("cites:"))
+        return json({
+          results: [
+            work(500, { abstract_inverted_index: abstractIndex(["A", "paper", "that", "cites", "the", "base."]) }),
+            work(501, { abstract_inverted_index: abstractIndex(["Another", "citing", "paper."]) }),
+          ],
+        });
       if (filter.startsWith("author.id:A100")) return json({ results: [work(7), work(8)] });
       if (filter.startsWith("author.id:A200")) return json({ results: [work(9)] });
       if (filter.startsWith("author.id:A300")) return json({ results: [work(10)] });
@@ -219,6 +225,27 @@ describe("MCP tools", () => {
     const r = await call("search_papers", { query: "spaced repetition", limit: 2 });
     expect(r.text).toContain("Abstract: Spaced repetition raises recall in students.");
     expect(r.text).toContain("Abstract: A study of testing effects.");
+    expect(seen[seen.length - 1].searchParams.get("select")).toContain("abstract_inverted_index");
+  });
+  it("shows a one line abstract under each citing paper", async () => {
+    const r = await call("find_citing_papers", { paper: "W2", limit: 2 });
+    expect(r.isError).toBe(false);
+    expect(r.text).toContain("Abstract: A paper that cites the base.");
+    expect(r.text).toContain("Abstract: Another citing paper.");
+    expect(seen[seen.length - 1].searchParams.get("select")).toContain("abstract_inverted_index");
+  });
+  it("shows a one line abstract under each related paper", async () => {
+    const r = await call("find_related_papers", { paper: "W2", limit: 2 });
+    expect(r.isError).toBe(false);
+    expect(r.text).toContain("Abstract: Summary of paper W10.");
+    expect(r.text).toContain("Abstract: Summary of paper W11.");
+    expect(seen[seen.length - 1].searchParams.get("select")).toContain("abstract_inverted_index");
+  });
+  it("shows a one line abstract under each reference", async () => {
+    const r = await call("paper_references", { paper: "W2", limit: 5 });
+    expect(r.isError).toBe(false);
+    expect(r.text).toContain("Abstract: Summary of paper W21.");
+    expect(r.text).toContain("Abstract: Summary of paper W20.");
     expect(seen[seen.length - 1].searchParams.get("select")).toContain("abstract_inverted_index");
   });
   it("refuses a sort order or a paper type it does not know", async () => {

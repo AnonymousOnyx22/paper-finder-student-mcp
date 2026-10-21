@@ -15,6 +15,7 @@
 
 ## Unreleased
 
+- The citing, the related and the reference lists now show a one line abstract under every entry, the same one line abstract a search result carries, so a paper can be judged from the list before it is opened. The OpenAlex request for those three lists now asks for the abstract field, and the descriptions of `find_citing_papers`, `find_related_papers` and `paper_references` say so.
 - Renamed the two tools whose names read as noun phrases, so every tool name now says what it does: `cited_by` is now `find_citing_papers` and `related_papers` is now `find_related_papers`. The old names stay in the code as deprecated aliases that return the same list, so saved prompts keep working. The README tool table, llms.txt and glama.json now advertise the new names.
 - Add POST.md, the copy for a directory or a weekly list: one paragraph pitch, the `npx -y paper-finder-student-mcp` block, the comparison row and three example prompts. A test keeps the npx block on the package name, the comparison row on the README table and the example prompts on the prompts the tools answer.
 - The README first screen now has an install snippet for Claude Desktop, Cursor and VS Code, so each app gets the config file it reads and the key it calls. Cursor reads `mcpServers` in `~/.cursor/mcp.json`, and VS Code reads `servers` in `.vscode/mcp.json` with the `type` set to `stdio`.
