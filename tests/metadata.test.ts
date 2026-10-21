@@ -122,6 +122,26 @@ describe("llms.txt, glama.json and README tool table", () => {
   });
 });
 
+describe("llms.txt when to use section", () => {
+  const whenToUse = section(llms, "When to use this");
+
+  it("says when to pick the server and when to leave it alone", () => {
+    expect(whenToUse).toContain("OpenAlex");
+    expect(whenToUse).toMatch(/most cited papers/);
+    expect(whenToUse).toMatch(/free to read/);
+    expect(whenToUse).toMatch(/Do not use it/);
+    expect(whenToUse.length).toBeLessThan(4000);
+  });
+
+  it("names only tool names the server really has", () => {
+    const known = new Set(tools.map((t) => t.name));
+    const mentioned = new Set(whenToUse.match(/\b[a-z][a-z0-9]*_[a-z0-9_]+\b/g) ?? []);
+    expect(mentioned.size).toBeGreaterThan(0);
+    for (const name of mentioned)
+      expect(known.has(name), `${name} is not a tool of this server`).toBe(true);
+  });
+});
+
 describe("npm search metadata", () => {
   it("leads the description and keywords with the phrase academic paper search mcp", () => {
     const pkg = JSON.parse(readFileSync(new URL("../package.json", import.meta.url), "utf8"));
