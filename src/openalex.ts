@@ -14,12 +14,16 @@ export interface Work {
   best_oa_location?: { pdf_url?: string | null; landing_page_url?: string | null } | null;
   abstract_inverted_index?: Record<string, number[]> | null;
   related_works?: string[];
+  referenced_works?: string[];
   type?: string;
 }
 
 const FIELDS = "id,doi,display_name,publication_year,cited_by_count,authorships,primary_location,open_access,type";
 const FULL_FIELDS = FIELDS + ",abstract_inverted_index,related_works,best_oa_location";
 const SEARCH_FIELDS = FIELDS + ",abstract_inverted_index";
+
+/** The fields needed to read the reference list of a paper. */
+const REFERENCES_FIELDS = "id,display_name,referenced_works";
 
 /** The kinds of paper a search can ask for, mapped to the OpenAlex type filter value. */
 export const WORK_TYPES: Record<string, string | undefined> = {
@@ -33,6 +37,12 @@ export const SEARCH_SORTS: Record<string, string | undefined> = {
   relevance: undefined,
   "cited_by_count:desc": "cited_by_count:desc",
   "publication_date:desc": "publication_date:desc",
+};
+
+/** The order a reference list can ask for, mapped to the OpenAlex sort value. */
+export const REFERENCE_SORTS: Record<string, string | undefined> = {
+  "cited_by_count:desc": "cited_by_count:desc",
+  "publication_year:asc": "publication_date:asc",
 };
 
 export function shortId(id: string): string {
@@ -165,8 +175,8 @@ export async function search(
   return res.results ?? [];
 }
 
-export async function getWork(api: OpenAlex, ref: string): Promise<Work> {
-  return getJson<Work>(api, `/works/${normalizeRef(ref)}`, params(api, { select: FULL_FIELDS }), ref);
+export async function getWork(api: OpenAlex, ref: string, fields: string = FULL_FIELDS): Promise<Work> {
+  return getJson<Work>(api, `/works/${normalizeRef(ref)}`, params(api, { select: fields }), ref);
 }
 
 export async function authorPapers(
@@ -353,4 +363,53 @@ export async function citedBy(api: OpenAlex, ref: string, limit: number): Promis
   const base = await getWork(api, ref);
   const res: any = await getJson<any>(api, "/works", params(api, { filter: `cites:${shortId(base.id)}`, sort: "publication_date:desc", per_page: limit, select: FIELDS }));
   return { base, works: res.results ?? [] };
+}
+
+/** How many ids go into one filter list, so a long reference list is asked for in parts. */
+const ID_CHUNK = 100;
+
+/** How many parts are asked for at the same time, so the server is not flooded. */
+const ID_PARALLEL = 4;
+
+/** Orders two works the way a reference list was asked for. Works with no year go last. */
+function compareWorks(a: Work, b: Work, sort: string): number {
+  if (sort === "publication_year:asc") {
+    const ay = a.publication_year ?? Number.MAX_SAFE_INTEGER;
+    const by = b.publication_year ?? Number.MAX_SAFE_INTEGER;
+    return ay - by;
+  }
+  return (b.cited_by_count ?? 0) - (a.cited_by_count ?? 0);
+}
+
+/**
+ * The papers that one paper cites, read from the referenced works it lists.
+ * A paper can list hundreds of references, so the ids are asked for in parts and
+ * the best ones are picked out of every part.
+ * The sort is the order the caller asked for, such as cited_by_count:desc.
+ */
+export async function references(
+  api: OpenAlex,
+  ref: string,
+  limit: number,
+  sort: string,
+): Promise<{ base: Work; works: Work[]; total: number }> {
+  const base = await getWork(api, ref, REFERENCES_FIELDS);
+  const ids = (base.referenced_works ?? []).map(shortId);
+  if (ids.length === 0) return { base, works: [], total: 0 };
+  const apiSort = REFERENCE_SORTS[sort] ?? "cited_by_count:desc";
+  const chunks: string[][] = [];
+  for (let i = 0; i < ids.length; i += ID_CHUNK) chunks.push(ids.slice(i, i + ID_CHUNK));
+  const pages: any[] = [];
+  for (let i = 0; i < chunks.length; i += ID_PARALLEL) {
+    const group = chunks.slice(i, i + ID_PARALLEL);
+    const res = await Promise.all(
+      group.map((chunk) =>
+        getJson<any>(api, "/works", params(api, { filter: `openalex:${chunk.join("|")}`, sort: apiSort, per_page: limit, select: FIELDS })),
+      ),
+    );
+    pages.push(...res);
+  }
+  const works = pages.flatMap((page) => page?.results ?? []);
+  works.sort((a: Work, b: Work) => compareWorks(a, b, sort));
+  return { base, works: works.slice(0, limit), total: ids.length };
 }

@@ -12,6 +12,7 @@ import {
   citedBy,
   getWork,
   line,
+  references,
   related,
   resolveAuthor,
   search,
@@ -35,6 +36,12 @@ const SORT_LABELS: Record<string, string> = {
   relevance: "in the order OpenAlex ranks them",
   "cited_by_count:desc": "most cited first",
   "publication_date:desc": "newest first",
+};
+
+/** The orders a reference list can ask for, and how they read in a sentence. */
+const REFERENCE_SORT_LABELS: Record<string, string> = {
+  "cited_by_count:desc": "most cited first",
+  "publication_year:asc": "oldest first",
 };
 
 function numbered(works: Work[]): string {
@@ -200,6 +207,31 @@ export const tools: ToolDef<OpenAlex>[] = [
       if (works.length === 0)
         return `No papers citing "${base.display_name ?? a.paper}" were found. The paper may be new or rarely cited. Try related_papers for similar work.`;
       return `Papers citing "${base.display_name}" (${base.cited_by_count ?? "?"} in total)\n\n` + numbered(works);
+    },
+  },
+  {
+    name: "paper_references",
+    title: "Paper references",
+    description:
+      "The papers that one paper cites, which is the other half of the citation graph that cited_by covers. Use it to read the bibliography of a paper, to find the source a result came from, or to work backwards from a paper to the earlier work it builds on. Inputs: paper (required, a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807), sort (optional, cited_by_count:desc for the most cited references first, or publication_year:asc for the oldest references first), limit (optional, 1 to 25, default 8). Example prompt: 'what papers does DOI 10.1038/nature14539 cite?'",
+    inputSchema: {
+      paper: ref,
+      sort: z
+        .enum(["cited_by_count:desc", "publication_year:asc"])
+        .optional()
+        .describe("How to order the references. cited_by_count:desc puts the most cited references first, publication_year:asc puts the oldest references first."),
+      limit,
+    },
+    run: async (a, api) => {
+      const sort = a.sort ?? "cited_by_count:desc";
+      const { base, works, total } = await references(api, a.paper, a.limit, sort);
+      if (works.length === 0) {
+        if (total > 0)
+          return `OpenAlex lists ${total} references for "${base.display_name ?? a.paper}", but none of them could be read. Try cited_by to find the papers that cite it.`;
+        return `OpenAlex lists no references for "${base.display_name ?? a.paper}". Try cited_by to find the papers that cite it.`;
+      }
+      const head = [`References of "${base.display_name}" (${total} in OpenAlex)`, REFERENCE_SORT_LABELS[sort]];
+      return `${head.join(", ")}\n\n` + numbered(works);
     },
   },
   {

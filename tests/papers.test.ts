@@ -68,7 +68,11 @@ beforeAll(async () => {
       const filter = url.searchParams.get("filter") ?? "";
       if (q === "ratelimit") return json({ error: "Rate limit exceeded" }, 429);
       if (q === "nothing") return json({ results: [] });
-      if (filter.startsWith("openalex:")) return json({ results: filter.slice(9).split("|").map((id) => work(Number(id.slice(1)))) });
+      if (filter.startsWith("openalex:")) {
+        const ids = filter.slice(9).split("|");
+        if (ids.every((id) => id === "W9999")) return json({ results: [] });
+        return json({ results: ids.map((id) => work(Number(id.slice(1)))) });
+      }
       if (filter.startsWith("cites:")) return json({ results: [work(500), work(501)] });
       if (filter.startsWith("author.id:A100")) return json({ results: [work(7), work(8)] });
       if (filter.startsWith("author.id:A200")) return json({ results: [work(9)] });
@@ -82,7 +86,10 @@ beforeAll(async () => {
     if (url.pathname === "/works/doi:10.1000/ratelimited") return json({ error: "Rate limit exceeded" }, 429);
     if (url.pathname === "/works/doi:10.1000/p3") return json(work(3));
     if (url.pathname === "/works/doi:10.1000/p2" || url.pathname === "/works/W2")
-      return json(work(2, { abstract_inverted_index: { Hello: [0], tested: [2], world: [1] }, related_works: ["https://openalex.org/W10", "https://openalex.org/W11"], best_oa_location: { pdf_url: "https://free.example/2/paper.pdf" } }));
+      return json(work(2, { abstract_inverted_index: { Hello: [0], tested: [2], world: [1] }, related_works: ["https://openalex.org/W10", "https://openalex.org/W11"], referenced_works: ["https://openalex.org/W21", "https://openalex.org/W20"], best_oa_location: { pdf_url: "https://free.example/2/paper.pdf" } }));
+    if (url.pathname === "/works/W150")
+      return json(work(150, { referenced_works: Array.from({ length: 150 }, (_, i) => `https://openalex.org/W${1000 + i}`) }));
+    if (url.pathname === "/works/W151") return json(work(151, { referenced_works: ["https://openalex.org/W9999"] }));
     json({}, 404);
   });
   await new Promise<void>((r) => srv.listen(0, "127.0.0.1", r));
@@ -130,7 +137,7 @@ describe("helpers", () => {
 });
 
 describe("MCP tools", () => {
-  it("lists eight read only tools", async () => {
+  it("lists nine read only tools", async () => {
     const tools = (await client.listTools()).tools;
     expect(tools.map((t) => t.name).sort()).toEqual([
       "cited_by",
@@ -139,6 +146,7 @@ describe("MCP tools", () => {
       "get_paper_by_doi",
       "get_related_work",
       "list_author_papers",
+      "paper_references",
       "related_papers",
       "search_papers",
     ]);
@@ -321,6 +329,67 @@ describe("MCP tools", () => {
     expect(alt.text).toContain("Paper 10");
     expect((await call("cited_by", { paper: "W2" })).text).toContain("Paper 500");
   });
+  it("lists the papers a paper cites, most cited first", async () => {
+    const r = await call("paper_references", { paper: "W2", limit: 5 });
+    expect(r.isError).toBe(false);
+    expect(r.text).toContain('References of "Paper 2"');
+    expect(r.text).toContain("most cited first");
+    expect(r.text).toContain("Paper 21");
+    expect(r.text).toContain("Paper 20");
+    const u = seen[seen.length - 1];
+    expect(u.searchParams.get("filter")).toBe("openalex:W21|W20");
+    expect(u.searchParams.get("sort")).toBe("cited_by_count:desc");
+  });
+  it("can put the oldest references first", async () => {
+    const r = await call("paper_references", { paper: "W2", sort: "publication_year:asc" });
+    expect(r.isError).toBe(false);
+    expect(r.text).toContain("oldest first");
+    expect(seen[seen.length - 1].searchParams.get("sort")).toBe("publication_date:asc");
+    expect(r.text.indexOf("Paper 20")).toBeLessThan(r.text.indexOf("Paper 21"));
+  });
+  it("says how many references the paper has when the limit hides some of them", async () => {
+    const r = await call("paper_references", { paper: "W2", limit: 1 });
+    expect(r.text).toContain("(2 in OpenAlex)");
+    expect(r.text).toContain("Paper 21");
+    expect(r.text).not.toContain("Paper 20");
+  });
+  it("takes the papers a paper cites from the OpenAlex reference list", async () => {
+    const before = seen.length;
+    await call("paper_references", { paper: "W2" });
+    const base = seen.slice(before).find((s) => s.pathname === "/works/W2");
+    expect(base?.searchParams.get("select")).toContain("referenced_works");
+  });
+  it("says plainly when a paper has no reference list in OpenAlex", async () => {
+    const r = await call("paper_references", { paper: "10.1000/p3" });
+    expect(r.isError).toBe(false);
+    expect(r.text).toContain('OpenAlex lists no references for "Paper 3"');
+    expect(r.text).toContain("cited_by");
+  });
+  it("says when the references are listed but none of them can be read", async () => {
+    const r = await call("paper_references", { paper: "W151" });
+    expect(r.isError).toBe(false);
+    expect(r.text).toContain("OpenAlex lists 1 references for");
+    expect(r.text).toContain("none of them could be read");
+  });
+  it("fetches a long reference list in parts of a hundred ids", async () => {
+    const before = seen.length;
+    const r = await call("paper_references", { paper: "W150", limit: 2 });
+    expect(r.isError).toBe(false);
+    expect(r.text).toContain("(150 in OpenAlex)");
+    const filters = seen
+      .slice(before)
+      .filter((s) => s.pathname === "/works" && (s.searchParams.get("filter") ?? "").startsWith("openalex:"));
+    expect(filters.length).toBe(2);
+    for (const f of filters) {
+      const ids = (f.searchParams.get("filter") ?? "").slice(9).split("|");
+      expect(ids.length).toBeLessThanOrEqual(100);
+    }
+  });
+  it("refuses a reference sort it does not know", async () => {
+    const r = await call("paper_references", { paper: "W2", sort: "nonsense" });
+    expect(r.isError).toBe(true);
+    expect(r.text).toContain("cited_by_count:desc");
+  });
   it("returns a typed not found error that suggests a title search or a DOI check", async () => {
     const r = await call("get_paper", { paper: "10.1000/unknown" });
     expect(r.isError).toBe(true);
@@ -333,6 +402,7 @@ describe("MCP tools", () => {
     expect((await call("find_open_access_pdf", { paper: "10.1000/unknown" })).code).toBe("not_found");
     expect((await call("related_papers", { paper: "10.1000/unknown" })).code).toBe("not_found");
     expect((await call("get_related_work", { paper: "10.1000/unknown" })).code).toBe("not_found");
+    expect((await call("paper_references", { paper: "10.1000/unknown" })).code).toBe("not_found");
   });
   it("returns a typed rate limit error instead of an empty answer", async () => {
     const a = await call("get_paper", { paper: "10.1000/ratelimited" });
@@ -350,6 +420,7 @@ describe("MCP tools", () => {
     expect((await call("find_open_access_pdf", { paper: "10.1000/ratelimited" })).code).toBe("rate_limited");
     expect((await call("get_related_work", { paper: "10.1000/ratelimited" })).code).toBe("rate_limited");
     expect((await call("cited_by", { paper: "10.1000/ratelimited" })).code).toBe("rate_limited");
+    expect((await call("paper_references", { paper: "10.1000/ratelimited" })).code).toBe("rate_limited");
     expect((await call("list_author_papers", { author: "ratelimit" })).code).toBe("rate_limited");
   });
   it("returns a typed invalid ref error for a bad id", async () => {

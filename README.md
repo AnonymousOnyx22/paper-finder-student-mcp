@@ -4,7 +4,7 @@
 [![downloads](https://img.shields.io/npm/dm/paper-finder-student-mcp.svg)](https://www.npmjs.com/package/paper-finder-student-mcp)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Paper Finder MCP is an academic paper search MCP server. Ask your AI to find real scholarly papers for an essay or research project, with authors, year, citation counts, DOIs, a one line abstract and a free to read link when one exists. Sort by citation count to get the most cited papers on a topic, or by date to get the newest ones. Results come straight from [OpenAlex](https://openalex.org), a free open catalog of scholarly works, so the papers are real, not invented. Free forever, no account and no key. Students often type things like 'find 5 sources for my essay on spaced repetition' or 'citations for my literature review'.
+Paper Finder MCP is an academic paper search MCP server. Ask your AI to find real scholarly papers for an essay or research project, with authors, year, citation counts, DOIs, a one line abstract and a free to read link when one exists. Sort by citation count to get the most cited papers on a topic, or by date to get the newest ones. Ask for the papers a paper cites, or the papers that cite it, when you build a literature review. Results come straight from [OpenAlex](https://openalex.org), a free open catalog of scholarly works, so the papers are real, not invented. Free forever, no account and no key. Students often type things like 'find 5 sources for my essay on spaced repetition' or 'citations for my literature review'.
 
 ## Install
 
@@ -38,6 +38,7 @@ Restart your AI app, then try one of the prompts below. You need Node.js 20 or n
 - "Find a free PDF of this paper, DOI 10.1038/nature14539."
 - "What papers are related to DOI 10.48550/arXiv.1706.03762?"
 - "Who cited DOI 10.48550/arXiv.1706.03762?"
+- "What does DOI 10.1038/nature14539 cite?"
 - "List papers by John Dewey on education since 1950."
 - "List papers by A. Duckworth on grit."
 
@@ -50,7 +51,7 @@ Three ways to get papers for an essay, and what each one actually gives you. Thi
 | Where the answers come from | OpenAlex, queried live each time you ask | Whatever the chat app does on its own, with no fixed catalog behind the answer | The Semantic Scholar catalog, queried live each time you ask |
 | Can you open the source | Yes, every result carries a DOI or OpenAlex id you can open | A paper it names may not exist, and there is often nothing to open | Yes, results carry identifiers you can open |
 | Free to read copy | `find_open_access_pdf` returns a link when one exists, or says plainly that none was found | It may offer a link, but nothing checks it against a catalog | Depends on what that server exposes, see its own README |
-| Citations and related work | `cited_by`, `related_papers` and `list_author_papers`, all in the same chat | You can ask, but you get one guess at a time, not a list read from an index | It has its own tools, check that project's README for which ones |
+| Citations and related work | `cited_by`, `paper_references`, `related_papers` and `list_author_papers`, all in the same chat | You can ask, but you get one guess at a time, not a list read from an index | It has its own tools, check that project's README for which ones |
 | Account, key or plan | None, no account and no key | You need an account with that service to ask | Depends on that project, check its own docs |
 | Where it runs | Inside your MCP client, next to your other tools | In a chat window | Inside your MCP client |
 
@@ -65,9 +66,10 @@ Paper Finder MCP is the one where every line has a live catalog record behind it
 | `find_open_access_pdf` | The free to read copy of one paper, preferring a PDF link, or a plain note that none exists | `paper` |
 | `related_papers` | Papers OpenAlex marks as related to a paper | `paper`, `limit` |
 | `cited_by` | Newer papers that cite a paper, most recent first | `paper`, `limit` |
+| `paper_references` | The papers a paper cites, so you can read its bibliography | `paper`, `sort`, `limit` |
 | `list_author_papers` | Papers by one author, most cited first, with the name looked up in the OpenAlex author records | `author`, `from_year`, `open_access_only`, `limit` |
 
-Every tool description states its inputs and one example prompt, so clients can pick the right tool without reading this page. `paper` accepts a DOI like `10.1038/nature14539`, a doi.org link, or an OpenAlex id like `W2741809807`. `doi` accepts a DOI or doi.org link with no OpenAlex ids, and `get_paper` takes either `paper` or `doi`, so a DOI lookup has one home. `limit` is 1 to 25, default 8. `search_papers` shows the title, authors, year, venue, citations, DOI and a one line abstract for every hit, so you can judge a paper before you open it. `sort` takes `relevance` (the default OpenAlex order), `cited_by_count:desc` for the most cited papers on the topic first, or `publication_date:desc` for the newest papers first. `type` takes `journal_article`, `preprint` or `book_chapter` to keep the results to one kind of paper. `list_author_papers` looks the name up in the OpenAlex author records first and then takes the papers from that author id, so `J. Smith`, `Smith, John` and `John Smith` all reach the same papers, even when the name on the paper is written differently. When the name cannot be resolved that way, the tool matches the name as it is written on the papers instead.
+Every tool description states its inputs and one example prompt, so clients can pick the right tool without reading this page. `paper` accepts a DOI like `10.1038/nature14539`, a doi.org link, or an OpenAlex id like `W2741809807`. `doi` accepts a DOI or doi.org link with no OpenAlex ids, and `get_paper` takes either `paper` or `doi`, so a DOI lookup has one home. `limit` is 1 to 25, default 8. `search_papers` shows the title, authors, year, venue, citations, DOI and a one line abstract for every hit, so you can judge a paper before you open it. `sort` takes `relevance` (the default OpenAlex order), `cited_by_count:desc` for the most cited papers on the topic first, or `publication_date:desc` for the newest papers first. `type` takes `journal_article`, `preprint` or `book_chapter` to keep the results to one kind of paper. `list_author_papers` looks the name up in the OpenAlex author records first and then takes the papers from that author id, so `J. Smith`, `Smith, John` and `John Smith` all reach the same papers, even when the name on the paper is written differently. When the name cannot be resolved that way, the tool matches the name as it is written on the papers instead. `cited_by` gives the papers that cite a paper, and `paper_references` gives the papers it cites, so a literature review can walk the citation graph in both directions. `paper_references` takes its own `sort`, with `cited_by_count:desc` for the most cited references first and `publication_year:asc` for the oldest references first, which reads like a bibliography from the beginning. The heading says how many references OpenAlex holds for the paper, so a list cut short by `limit` is clear.
 
 `get_paper_by_doi` and `get_related_work` still exist as deprecated aliases so saved prompts keep working. They do the same work as `get_paper` with `doi` and `related_papers`, and new prompts should use those two instead.
 

@@ -48,12 +48,13 @@ const readmeTools = readmeRows.map((row) => row.name);
 const glamaTools = glama.tools.map((t) => t.name);
 
 describe("llms.txt, glama.json and README tool table", () => {
-  it("advertises the six main tools with the parameters the code accepts", () => {
+  it("advertises the main tools with the parameters the code accepts", () => {
     expect(advertised.map((t) => t.name).sort()).toEqual([
       "cited_by",
       "find_open_access_pdf",
       "get_paper",
       "list_author_papers",
+      "paper_references",
       "related_papers",
       "search_papers",
     ]);
