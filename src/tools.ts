@@ -69,9 +69,17 @@ function relatedRun(heading: string) {
   return async (a: { paper: string; limit: number }, api: OpenAlex): Promise<string> => {
     const { base, works } = await related(api, a.paper, a.limit);
     if (works.length === 0)
-      return `OpenAlex lists no related papers for "${base.display_name ?? a.paper}". Try cited_by to find papers that cite it.`;
+      return `OpenAlex lists no related papers for "${base.display_name ?? a.paper}". Try find_citing_papers to find papers that cite it.`;
     return `${heading} "${base.display_name}"\n\n` + numbered(works);
   };
+}
+
+/** The papers that cite a paper, newest first. */
+async function citingPapers(a: { paper: string; limit: number }, api: OpenAlex): Promise<string> {
+  const { base, works } = await citedBy(api, a.paper, a.limit);
+  if (works.length === 0)
+    return `No papers citing "${base.display_name ?? a.paper}" were found. The paper may be new or rarely cited. Try find_related_papers for similar work.`;
+  return `Papers citing "${base.display_name}" (${base.cited_by_count ?? "?"} in total)\n\n` + numbered(works);
 }
 
 function noAuthorMatches(author: string, usedYear?: number, usedOa?: boolean, resolved?: ResolvedAuthor): string {
@@ -181,10 +189,18 @@ export const tools: ToolDef<OpenAlex>[] = [
     },
   },
   {
+    name: "find_related_papers",
+    title: "Find related papers",
+    description:
+      "Lists the papers that OpenAlex lists as related to a given paper, so you can find more work on the same topic. Inputs: paper (required, a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807), limit (optional, 1 to 25, default 8). Example prompt: 'what papers are related to DOI 10.48550/arXiv.1706.03762?'",
+    inputSchema: { paper: ref, limit },
+    run: relatedRun("Related to"),
+  },
+  {
     name: "related_papers",
     title: "Related papers",
     description:
-      "Papers that OpenAlex lists as related to a given paper. Inputs: paper (required, a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807), limit (optional, 1 to 25, default 8). Example prompt: 'what papers are related to DOI 10.48550/arXiv.1706.03762?'",
+      "Deprecated, use find_related_papers instead, it returns the same list. Kept so saved prompts keep working. Papers that OpenAlex lists as related to a given paper. Inputs: paper (required, a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807), limit (optional, 1 to 25, default 8). Example prompt: 'what papers are related to DOI 10.48550/arXiv.1706.03762?'",
     inputSchema: { paper: ref, limit },
     run: relatedRun("Related to"),
   },
@@ -192,28 +208,31 @@ export const tools: ToolDef<OpenAlex>[] = [
     name: "get_related_work",
     title: "Get related work",
     description:
-      "Deprecated, use related_papers instead, it returns the same list. Kept so saved prompts keep working. Other papers on the same topic as one paper. Inputs: paper (required, a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807), limit (optional, 1 to 25, default 8). Example prompt: 'what related work should I read for DOI 10.48550/arXiv.1706.03762?'",
+      "Deprecated, use find_related_papers instead, it returns the same list. Kept so saved prompts keep working. Other papers on the same topic as one paper. Inputs: paper (required, a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807), limit (optional, 1 to 25, default 8). Example prompt: 'what related work should I read for DOI 10.48550/arXiv.1706.03762?'",
     inputSchema: { paper: ref, limit },
     run: relatedRun("Related work for"),
+  },
+  {
+    name: "find_citing_papers",
+    title: "Find citing papers",
+    description:
+      "Lists the papers that cite a given paper, newest first. This is the other half of the citation graph that paper_references covers, so a literature review can walk the graph in both directions. Inputs: paper (required, a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807), limit (optional, 1 to 25, default 8). Example prompt: 'who cited DOI 10.48550/arXiv.1706.03762?'",
+    inputSchema: { paper: ref, limit },
+    run: (a, api) => citingPapers(a, api),
   },
   {
     name: "cited_by",
     title: "Cited by",
     description:
-      "Newer papers that cite a given paper, most recent first. Inputs: paper (required, a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807), limit (optional, 1 to 25, default 8). Example prompt: 'who cited DOI 10.48550/arXiv.1706.03762?'",
+      "Deprecated, use find_citing_papers instead, it returns the same list. Kept so saved prompts keep working. Newer papers that cite a given paper, most recent first. Inputs: paper (required, a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807), limit (optional, 1 to 25, default 8). Example prompt: 'who cited DOI 10.48550/arXiv.1706.03762?'",
     inputSchema: { paper: ref, limit },
-    run: async (a, api) => {
-      const { base, works } = await citedBy(api, a.paper, a.limit);
-      if (works.length === 0)
-        return `No papers citing "${base.display_name ?? a.paper}" were found. The paper may be new or rarely cited. Try related_papers for similar work.`;
-      return `Papers citing "${base.display_name}" (${base.cited_by_count ?? "?"} in total)\n\n` + numbered(works);
-    },
+    run: (a, api) => citingPapers(a, api),
   },
   {
     name: "paper_references",
     title: "Paper references",
     description:
-      "The papers that one paper cites, which is the other half of the citation graph that cited_by covers. Use it to read the bibliography of a paper, to find the source a result came from, or to work backwards from a paper to the earlier work it builds on. Inputs: paper (required, a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807), sort (optional, cited_by_count:desc for the most cited references first, or publication_year:asc for the oldest references first), limit (optional, 1 to 25, default 8). Example prompt: 'what papers does DOI 10.1038/nature14539 cite?'",
+      "The papers that one paper cites, which is the other half of the citation graph that find_citing_papers covers. Use it to read the bibliography of a paper, to find the source a result came from, or to work backwards from a paper to the earlier work it builds on. Inputs: paper (required, a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807), sort (optional, cited_by_count:desc for the most cited references first, or publication_year:asc for the oldest references first), limit (optional, 1 to 25, default 8). Example prompt: 'what papers does DOI 10.1038/nature14539 cite?'",
     inputSchema: {
       paper: ref,
       sort: z
@@ -227,8 +246,8 @@ export const tools: ToolDef<OpenAlex>[] = [
       const { base, works, total } = await references(api, a.paper, a.limit, sort);
       if (works.length === 0) {
         if (total > 0)
-          return `OpenAlex lists ${total} references for "${base.display_name ?? a.paper}", but none of them could be read. Try cited_by to find the papers that cite it.`;
-        return `OpenAlex lists no references for "${base.display_name ?? a.paper}". Try cited_by to find the papers that cite it.`;
+          return `OpenAlex lists ${total} references for "${base.display_name ?? a.paper}", but none of them could be read. Try find_citing_papers to find the papers that cite it.`;
+        return `OpenAlex lists no references for "${base.display_name ?? a.paper}". Try find_citing_papers to find the papers that cite it.`;
       }
       const head = [`References of "${base.display_name}" (${total} in OpenAlex)`, REFERENCE_SORT_LABELS[sort]];
       return `${head.join(", ")}\n\n` + numbered(works);

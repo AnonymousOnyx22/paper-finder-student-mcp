@@ -50,12 +50,12 @@ const glamaTools = glama.tools.map((t) => t.name);
 describe("llms.txt, glama.json and README tool table", () => {
   it("advertises the main tools with the parameters the code accepts", () => {
     expect(advertised.map((t) => t.name).sort()).toEqual([
-      "cited_by",
+      "find_citing_papers",
       "find_open_access_pdf",
+      "find_related_papers",
       "get_paper",
       "list_author_papers",
       "paper_references",
-      "related_papers",
       "search_papers",
     ]);
     for (const t of advertised) {
@@ -93,7 +93,12 @@ describe("llms.txt, glama.json and README tool table", () => {
     }
   });
   it("keeps the deprecated aliases in the code for saved prompts but out of the tool lists", () => {
-    expect(deprecated.map((t) => t.name).sort()).toEqual(["get_paper_by_doi", "get_related_work"]);
+    expect(deprecated.map((t) => t.name).sort()).toEqual([
+      "cited_by",
+      "get_paper_by_doi",
+      "get_related_work",
+      "related_papers",
+    ]);
     for (const t of deprecated) {
       expect(llms).not.toContain(`- ${t.name}:`);
       expect(glama.tools.map((g) => g.name)).not.toContain(t.name);

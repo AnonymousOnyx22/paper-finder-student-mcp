@@ -137,11 +137,13 @@ describe("helpers", () => {
 });
 
 describe("MCP tools", () => {
-  it("lists nine read only tools", async () => {
+  it("lists eleven read only tools", async () => {
     const tools = (await client.listTools()).tools;
     expect(tools.map((t) => t.name).sort()).toEqual([
       "cited_by",
+      "find_citing_papers",
       "find_open_access_pdf",
+      "find_related_papers",
       "get_paper",
       "get_paper_by_doi",
       "get_related_work",
@@ -323,11 +325,28 @@ describe("MCP tools", () => {
     expect(empty.text).toContain("OpenAlex has no author record under that name");
   });
   it("finds related and citing papers", async () => {
+    expect((await call("find_related_papers", { paper: "W2", limit: 2 })).text).toContain("Paper 10");
     expect((await call("related_papers", { paper: "W2", limit: 2 })).text).toContain("Paper 10");
     const alt = await call("get_related_work", { paper: "W2", limit: 2 });
     expect(alt.text).toContain("Related work for \"Paper 2\"");
     expect(alt.text).toContain("Paper 10");
+    expect((await call("find_citing_papers", { paper: "W2" })).text).toContain("Paper 500");
     expect((await call("cited_by", { paper: "W2" })).text).toContain("Paper 500");
+  });
+  it("gives the same answer for the new tool names and the old ones", async () => {
+    const related = await call("find_related_papers", { paper: "W2", limit: 2 });
+    const oldRelated = await call("related_papers", { paper: "W2", limit: 2 });
+    expect(related.text).toBe(oldRelated.text);
+    const citing = await call("find_citing_papers", { paper: "W2", limit: 2 });
+    const oldCiting = await call("cited_by", { paper: "W2", limit: 2 });
+    expect(citing.text).toBe(oldCiting.text);
+  });
+  it("orders the citing papers newest first", async () => {
+    const r = await call("find_citing_papers", { paper: "W2", limit: 2 });
+    expect(r.isError).toBe(false);
+    expect(r.text).toContain('Papers citing "Paper 2"');
+    expect(seen[seen.length - 1].searchParams.get("filter")).toBe("cites:W2");
+    expect(seen[seen.length - 1].searchParams.get("sort")).toBe("publication_date:desc");
   });
   it("lists the papers a paper cites, most cited first", async () => {
     const r = await call("paper_references", { paper: "W2", limit: 5 });
@@ -363,7 +382,13 @@ describe("MCP tools", () => {
     const r = await call("paper_references", { paper: "10.1000/p3" });
     expect(r.isError).toBe(false);
     expect(r.text).toContain('OpenAlex lists no references for "Paper 3"');
-    expect(r.text).toContain("cited_by");
+    expect(r.text).toContain("find_citing_papers");
+  });
+  it("points at the citing papers when OpenAlex lists no related papers", async () => {
+    const r = await call("find_related_papers", { paper: "10.1000/p3" });
+    expect(r.isError).toBe(false);
+    expect(r.text).toContain('OpenAlex lists no related papers for "Paper 3"');
+    expect(r.text).toContain("find_citing_papers");
   });
   it("says when the references are listed but none of them can be read", async () => {
     const r = await call("paper_references", { paper: "W151" });
@@ -398,9 +423,11 @@ describe("MCP tools", () => {
     expect(r.text).toContain("Check the DOI format");
     expect(r.text).toContain("search by the title with search_papers");
     expect((await call("cited_by", { paper: "W999" })).code).toBe("not_found");
+    expect((await call("find_citing_papers", { paper: "W999" })).code).toBe("not_found");
     expect((await call("get_paper_by_doi", { doi: "10.1000/unknown" })).code).toBe("not_found");
     expect((await call("find_open_access_pdf", { paper: "10.1000/unknown" })).code).toBe("not_found");
     expect((await call("related_papers", { paper: "10.1000/unknown" })).code).toBe("not_found");
+    expect((await call("find_related_papers", { paper: "10.1000/unknown" })).code).toBe("not_found");
     expect((await call("get_related_work", { paper: "10.1000/unknown" })).code).toBe("not_found");
     expect((await call("paper_references", { paper: "10.1000/unknown" })).code).toBe("not_found");
   });
@@ -420,6 +447,8 @@ describe("MCP tools", () => {
     expect((await call("find_open_access_pdf", { paper: "10.1000/ratelimited" })).code).toBe("rate_limited");
     expect((await call("get_related_work", { paper: "10.1000/ratelimited" })).code).toBe("rate_limited");
     expect((await call("cited_by", { paper: "10.1000/ratelimited" })).code).toBe("rate_limited");
+    expect((await call("find_citing_papers", { paper: "10.1000/ratelimited" })).code).toBe("rate_limited");
+    expect((await call("find_related_papers", { paper: "10.1000/ratelimited" })).code).toBe("rate_limited");
     expect((await call("paper_references", { paper: "10.1000/ratelimited" })).code).toBe("rate_limited");
     expect((await call("list_author_papers", { author: "ratelimit" })).code).toBe("rate_limited");
   });
