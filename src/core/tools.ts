@@ -21,7 +21,7 @@ export interface ToolResult {
   isError?: boolean;
 }
 
-/** An expected failure with a stable machine readable code, such as "not_found" or "rate_limited". */
+/** An expected failure with a stable machine readable code, such as "not_found", "rate_limited" or "upstream_error". */
 export class ToolError extends Error {
   constructor(
     message: string,

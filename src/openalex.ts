@@ -127,7 +127,19 @@ function params(api: OpenAlex, extra: Record<string, string | number | undefined
   return { ...extra, ...(api.email ? { mailto: api.email } : {}) };
 }
 
-/** Fetch one JSON document, turning a 404 for a known ref and a 429 into typed errors. */
+/** The message for an OpenAlex failure that is not the caller's fault. */
+function upstreamMessage(err: ApiError): string {
+  if (err.kind === "timeout") return `OpenAlex did not answer (${err.message}). Try again shortly.`;
+  if (err.kind === "network") return `OpenAlex could not be reached (${err.message}). Try again shortly.`;
+  return `OpenAlex had a problem (HTTP ${err.status}). Try again shortly.`;
+}
+
+/** True when OpenAlex failed on its own side, so the caller can retry later. */
+function isUpstreamFailure(err: ApiError): boolean {
+  return err.status >= 500 || err.kind === "timeout" || err.kind === "network";
+}
+
+/** Fetch one JSON document, turning a 404 for a known ref, a 429 and an OpenAlex outage into typed errors. */
 async function getJson<T>(
   api: OpenAlex,
   path: string,
@@ -149,6 +161,8 @@ async function getJson<T>(
         `OpenAlex rate limited this request (HTTP 429). Wait about a minute and try again. Making fewer requests at a time also helps.`,
         "rate_limited",
       );
+    if (err instanceof ApiError && isUpstreamFailure(err))
+      throw new ToolError(upstreamMessage(err), "upstream_error");
     throw err;
   }
 }

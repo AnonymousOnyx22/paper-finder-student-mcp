@@ -5,7 +5,8 @@ import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { createServer, makeApi } from "../src/server.js";
 import { tools as toolDefs } from "../src/tools.js";
-import { abstractOf, nameMatch, normalizeRef, snippetOf, spellingMatch } from "../src/openalex.js";
+import { createClient } from "../src/core/http.js";
+import { abstractOf, nameMatch, normalizeRef, snippetOf, spellingMatch, type OpenAlex } from "../src/openalex.js";
 
 const work = (n: number, extra: Record<string, unknown> = {}) => ({
   id: `https://openalex.org/W${n}`,
@@ -40,6 +41,7 @@ const profiles: Record<string, ReturnType<typeof authorProfile>> = {
 
 let srv: http.Server;
 let client: Client;
+let base: string;
 const seen: URL[] = [];
 
 beforeAll(async () => {
@@ -53,6 +55,7 @@ beforeAll(async () => {
     if (url.pathname === "/authors") {
       const search = (url.searchParams.get("search") ?? "").replace(/[,.]/g, "").replace(/\s+/g, " ").trim();
       if (search.toLowerCase().includes("ratelimit")) return json({ error: "Rate limit exceeded" }, 429);
+      if (search.toLowerCase().includes("outage")) return json({ error: "Upstream failure" }, 500);
       if (search === "Ada Lovelace") return json({ results: [profiles.A100, profiles.A101] });
       if (search === "Dewey") return json({ results: [profiles.A200] });
       if (search === "J Smith" || search === "Smith") return json({ results: [profiles.A300] });
@@ -68,6 +71,7 @@ beforeAll(async () => {
       const q = url.searchParams.get("search");
       const filter = url.searchParams.get("filter") ?? "";
       if (q === "ratelimit") return json({ error: "Rate limit exceeded" }, 429);
+      if (q === "outage") return json({ error: "Upstream failure" }, 500);
       if (q === "nothing") return json({ results: [] });
       if (filter.startsWith("openalex:")) {
         const ids = filter.slice(9).split("|");
@@ -91,6 +95,13 @@ beforeAll(async () => {
       return json({ results: [work(2, { abstract_inverted_index: abstractIndex(["Spaced", "repetition", "raises", "recall", "in", "students."]) }), work(3, { abstract_inverted_index: abstractIndex(["A", "study", "of", "testing", "effects."]) })] });
     }
     if (url.pathname === "/works/doi:10.1000/ratelimited") return json({ error: "Rate limit exceeded" }, 429);
+    if (url.pathname === "/works/doi:10.1000/outage") return json({ error: "Upstream failure" }, 500);
+    if (url.pathname === "/works/doi:10.1000/slow") {
+      setTimeout(() => {
+        if (!res.writableEnded && !res.destroyed) json(work(9));
+      }, 600);
+      return;
+    }
     if (url.pathname === "/works/doi:10.1000/p3") return json(work(3));
     if (url.pathname === "/works/doi:10.1000/p2" || url.pathname === "/works/W2")
       return json(work(2, { abstract_inverted_index: { Hello: [0], tested: [2], world: [1] }, related_works: ["https://openalex.org/W10", "https://openalex.org/W11"], referenced_works: ["https://openalex.org/W21", "https://openalex.org/W20"], best_oa_location: { pdf_url: "https://free.example/2/paper.pdf" } }));
@@ -100,7 +111,7 @@ beforeAll(async () => {
     json({}, 404);
   });
   await new Promise<void>((r) => srv.listen(0, "127.0.0.1", r));
-  const base = `http://127.0.0.1:${(srv.address() as AddressInfo).port}`;
+  base = `http://127.0.0.1:${(srv.address() as AddressInfo).port}`;
   const [a, b] = InMemoryTransport.createLinkedPair();
   await createServer(makeApi(base, "me@example.com")).connect(a);
   client = new Client({ name: "test", version: "0" });
@@ -108,9 +119,22 @@ beforeAll(async () => {
 });
 afterAll(() => srv.close());
 
-async function call(name: string, args: Record<string, unknown> = {}) {
-  const r: any = await client.callTool({ name, arguments: args });
+/** A second client on the same fake OpenAlex, for the cases that need their own settings. */
+async function connect(api: OpenAlex): Promise<Client> {
+  const [a, b] = InMemoryTransport.createLinkedPair();
+  await createServer(api).connect(a);
+  const c = new Client({ name: "test", version: "0" });
+  await c.connect(b);
+  return c;
+}
+
+async function callOn(c: Client, name: string, args: Record<string, unknown> = {}) {
+  const r: any = await c.callTool({ name, arguments: args });
   return { text: r.content[0].text as string, isError: !!r.isError, code: r.code as string | undefined };
+}
+
+async function call(name: string, args: Record<string, unknown> = {}) {
+  return callOn(client, name, args);
 }
 
 describe("helpers", () => {
@@ -530,5 +554,36 @@ describe("MCP tools", () => {
     expect(r.code).toBe("invalid_ref");
     expect(r.text).toContain("not a DOI");
     expect(r.text).not.toContain("Something went wrong");
+  });
+  it("returns a typed upstream error when OpenAlex has a problem", async () => {
+    const r = await call("get_paper", { paper: "10.1000/outage" });
+    expect(r.isError).toBe(true);
+    expect(r.code).toBe("upstream_error");
+    expect(r.text).toContain("OpenAlex had a problem");
+    expect(r.text).toContain("HTTP 500");
+    expect(r.text).toContain("Try again shortly");
+    expect(r.text).not.toContain("Something went wrong");
+  });
+  it("gives every tool the same upstream error code", async () => {
+    expect((await call("search_papers", { query: "outage" })).code).toBe("upstream_error");
+    expect((await call("get_paper_by_doi", { doi: "10.1000/outage" })).code).toBe("upstream_error");
+    expect((await call("find_open_access_pdf", { paper: "10.1000/outage" })).code).toBe("upstream_error");
+    expect((await call("find_related_papers", { paper: "10.1000/outage" })).code).toBe("upstream_error");
+    expect((await call("find_citing_papers", { paper: "10.1000/outage" })).code).toBe("upstream_error");
+    expect((await call("paper_references", { paper: "10.1000/outage" })).code).toBe("upstream_error");
+    expect((await call("list_author_papers", { author: "outage" })).code).toBe("upstream_error");
+    expect((await call("cited_by", { paper: "10.1000/outage" })).code).toBe("upstream_error");
+    expect((await call("related_papers", { paper: "10.1000/outage" })).code).toBe("upstream_error");
+    expect((await call("get_related_work", { paper: "10.1000/outage" })).code).toBe("upstream_error");
+  });
+  it("returns a typed upstream error when OpenAlex does not answer in time", async () => {
+    const slow = await connect({ http: createClient({ baseUrl: base, timeoutMs: 100 }), email: "me@example.com" });
+    const r = await callOn(slow, "get_paper", { paper: "10.1000/slow" });
+    expect(r.isError).toBe(true);
+    expect(r.code).toBe("upstream_error");
+    expect(r.text).toContain("OpenAlex did not answer");
+    expect(r.text).toContain("timed out");
+    expect(r.text).toContain("Try again shortly");
+    await slow.close();
   });
 });

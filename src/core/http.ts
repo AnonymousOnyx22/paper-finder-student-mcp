@@ -1,8 +1,13 @@
+/** Why a request failed: a status came back, the request ran out of time, or the connection broke. */
+export type ApiErrorKind = "http" | "timeout" | "network";
+
 export class ApiError extends Error {
   constructor(
     message: string,
     public status: number,
     public body?: string,
+    /** What went wrong, so a caller can tell an outage from a bad request. */
+    public kind: ApiErrorKind = "http",
   ) {
     super(message);
     this.name = "ApiError";
@@ -69,9 +74,9 @@ export function createClient(opts: ClientOptions): HttpClient {
     } catch (err) {
       if (err instanceof ApiError) throw err;
       if ((err as Error).name === "AbortError") {
-        throw new ApiError(`Request timed out after ${timeout / 1000}s`, 0);
+        throw new ApiError(`Request timed out after ${timeout / 1000}s`, 0, undefined, "timeout");
       }
-      throw new ApiError(`Network error: ${(err as Error).message}`, 0);
+      throw new ApiError(`Network error: ${(err as Error).message}`, 0, undefined, "network");
     } finally {
       clearTimeout(timer);
     }
