@@ -38,6 +38,7 @@ beforeAll(async () => {
       if (filter.startsWith("openalex:")) return json({ results: filter.slice(9).split("|").map((id) => work(Number(id.slice(1)))) });
       if (filter.startsWith("cites:")) return json({ results: [work(500), work(501)] });
       if (filter.startsWith("raw_author_name.search:Nobody")) return json({ results: [] });
+      if (filter.toLowerCase().includes("ratelimit")) return json({ error: "Rate limit exceeded" }, 429);
       if (filter.startsWith("raw_author_name.search:")) return json({ results: [work(7), work(8)] });
       return json({ results: [work(2), work(3)] });
     }
@@ -172,6 +173,10 @@ describe("MCP tools", () => {
     expect(r.text).toContain("Check the DOI format");
     expect(r.text).toContain("search by the title with search_papers");
     expect((await call("cited_by", { paper: "W999" })).code).toBe("not_found");
+    expect((await call("get_paper_by_doi", { doi: "10.1000/unknown" })).code).toBe("not_found");
+    expect((await call("find_open_access_pdf", { paper: "10.1000/unknown" })).code).toBe("not_found");
+    expect((await call("related_papers", { paper: "10.1000/unknown" })).code).toBe("not_found");
+    expect((await call("get_related_work", { paper: "10.1000/unknown" })).code).toBe("not_found");
   });
   it("returns a typed rate limit error instead of an empty answer", async () => {
     const a = await call("get_paper", { paper: "10.1000/ratelimited" });
@@ -185,6 +190,11 @@ describe("MCP tools", () => {
     const c = await call("related_papers", { paper: "10.1000/ratelimited" });
     expect(c.isError).toBe(true);
     expect(c.code).toBe("rate_limited");
+    expect((await call("get_paper_by_doi", { doi: "10.1000/ratelimited" })).code).toBe("rate_limited");
+    expect((await call("find_open_access_pdf", { paper: "10.1000/ratelimited" })).code).toBe("rate_limited");
+    expect((await call("get_related_work", { paper: "10.1000/ratelimited" })).code).toBe("rate_limited");
+    expect((await call("cited_by", { paper: "10.1000/ratelimited" })).code).toBe("rate_limited");
+    expect((await call("list_author_papers", { author: "ratelimit" })).code).toBe("rate_limited");
   });
   it("returns a typed invalid ref error for a bad id", async () => {
     const r = await call("get_paper", { paper: "hello" });
