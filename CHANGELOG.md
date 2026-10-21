@@ -1,9 +1,7 @@
 # Changelog
 
-## 0.1.2
+## Unreleased
 
-- Rewrite the package.json description and the keywords for npm search
-- Add a comparison table to the README
 - The DOI lookup moved into `get_paper` as an optional `doi` input and the related work lookup moved into `find_related_papers`, and the two tools whose names read as noun phrases were renamed, so `cited_by` is now `find_citing_papers` and `related_papers` is now `find_related_papers`. The old names `get_paper_by_doi`, `get_related_work`, `cited_by` and `related_papers` stay in the code as deprecated aliases that return the same result, so saved prompts keep working, while the README tool table, llms.txt and glama.json now advertise the current tools
 - The deprecated aliases are not in the tool list a client sees any more, so a client gets the current tools only and no second name for the same work. The aliases stay in the code and still answer when a saved prompt calls them, so nothing that depends on them breaks. The README, llms.txt and glama.json say so
 - New `paper_references` tool that lists the papers a paper cites, so a literature review can get the bibliography of a paper as well as the papers that cite it. The `find_citing_papers` tool gives the inbound side. The list is read from the OpenAlex reference list of that paper, and a `sort` input puts the most cited references first or the oldest ones first, which reads like a bibliography from the beginning. The new tool is advertised in the README tool table, llms.txt and glama.json next to the other tools
@@ -21,6 +19,11 @@
 - The opening paragraph of the README is now four short paragraphs instead of one long block
 - llms.txt now has a when to use section, so a client can tell when to pick this server and when to leave it alone. It names the student tasks it fits, such as the papers behind an essay, a literature review or a research project, and the tasks it does not fit, such as news or web pages. It points at the tools that cover a topic, an author and the graph around one paper, and it says the server only reads from OpenAlex, with no key and no account
 - Add POST.md, the copy for a directory or a weekly list: one paragraph pitch, the `npx -y paper-finder-student-mcp` block, the comparison row and three example prompts. A test keeps the npx block on the package name, the comparison row on the README table and the example prompts on the prompts the tools answer
+
+## 0.1.2
+
+- Rewrite the package.json description and the keywords for npm search
+- Add a comparison table to the README
 
 ## 0.1.1
 
