@@ -6,7 +6,7 @@ Every claim below comes from the code and the README, so if a tool changes, fix 
 
 ## Pitch
 
-Paper Finder MCP is an academic paper search MCP server. It reads OpenAlex, a free open catalog of scholarly works, so the papers it returns are catalog records and not guesses. A search gives you the title, the authors, the year, the venue, the citation count, the DOI, a one line abstract and a link to a free to read copy when one exists. You can order the results by citation count or by date, keep them to one kind of paper, look up one paper by DOI, find the free copy of a paper, walk the citation graph in both directions and list the papers of one author. There is no account and no key, and the server runs with npx.
+Paper Finder MCP is an academic paper search MCP server. It reads OpenAlex, a free open catalog of scholarly works, so the papers it returns are catalog records and not guesses. A search gives you the title, the authors, the year, the venue, the citation count, the DOI, a one line abstract and a link to a free to read copy when one exists. You can order the results by citation count or by date, keep them to one kind of paper, hold them to a range of years or to a minimum number of citations, look up one paper by DOI, find the free copy of a paper, walk the citation graph in both directions and list the papers of one author. There is no account and no key, and the server runs with npx.
 
 ## Install
 

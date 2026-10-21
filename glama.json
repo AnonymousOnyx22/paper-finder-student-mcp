@@ -15,8 +15,8 @@
   "tools": [
     {
       "name": "search_papers",
-      "description": "Search scholarly papers by keywords. Returns title, authors, year, venue, citation count, DOI, a one line abstract and a free to read link when one exists. The results can be ordered, so you can get the most cited papers on a topic or the newest ones, and they can be limited to one kind of paper. Inputs: query (required keywords), from_year (optional earliest publication year), open_access_only (optional, false by default), type (optional, journal_article, preprint or book_chapter), sort (optional, relevance for the OpenAlex order, cited_by_count:desc for the most cited papers first, or publication_date:desc for the newest papers first), limit (optional, 1 to 25, default 8). Example prompt: 'find the most cited papers on spaced repetition since 2020.'",
-      "parameters": ["query", "from_year", "open_access_only", "type", "sort", "limit"]
+      "description": "Search scholarly papers by keywords. Returns title, authors, year, venue, citation count, DOI, a one line abstract and a free to read link when one exists. The results can be ordered, so you can get the most cited papers on a topic or the newest ones, and they can be limited to one kind of paper, to a range of years or to a minimum number of citations. Inputs: query (required keywords), from_year (optional earliest publication year), to_year (optional latest publication year), min_citations (optional, keep only the papers with at least this many citations), open_access_only (optional, false by default), type (optional, journal_article, preprint or book_chapter), sort (optional, relevance for the OpenAlex order, cited_by_count:desc for the most cited papers first, or publication_date:desc for the newest papers first), limit (optional, 1 to 25, default 8). Example prompt: 'find the most cited papers on spaced repetition since 2020.'",
+      "parameters": ["query", "from_year", "to_year", "min_citations", "open_access_only", "type", "sort", "limit"]
     },
     {
       "name": "get_paper",

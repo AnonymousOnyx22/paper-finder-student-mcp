@@ -221,6 +221,44 @@ describe("MCP tools", () => {
       "from_publication_date:2021-01-01,is_oa:true,type:article",
     );
   });
+  it("keeps the results inside a range of years", async () => {
+    const r = await call("search_papers", { query: "spaced repetition", from_year: 2015, to_year: 2020, limit: 2 });
+    expect(r.isError).toBe(false);
+    expect(r.text).toContain("published 2015 to 2020");
+    expect(seen[seen.length - 1].searchParams.get("filter")).toBe(
+      "from_publication_date:2015-01-01,to_publication_date:2020-12-31",
+    );
+  });
+  it("keeps the results up to one year", async () => {
+    const r = await call("search_papers", { query: "spaced repetition", to_year: 2020, limit: 2 });
+    expect(r.isError).toBe(false);
+    expect(r.text).toContain("published up to 2020");
+    expect(seen[seen.length - 1].searchParams.get("filter")).toBe("to_publication_date:2020-12-31");
+  });
+  it("keeps only the papers with enough citations", async () => {
+    const r = await call("search_papers", { query: "spaced repetition", min_citations: 50, limit: 2 });
+    expect(r.isError).toBe(false);
+    expect(r.text).toContain("at least 50 citations");
+    expect(seen[seen.length - 1].searchParams.get("filter")).toBe("cited_by_count:>49");
+  });
+  it("puts the year range and the citation count in the same query", async () => {
+    await call("search_papers", { query: "spaced repetition", from_year: 2015, to_year: 2020, min_citations: 50, open_access_only: true, type: "journal_article", limit: 2 });
+    expect(seen[seen.length - 1].searchParams.get("filter")).toBe(
+      "from_publication_date:2015-01-01,to_publication_date:2020-12-31,cited_by_count:>49,is_oa:true,type:article",
+    );
+  });
+  it("says so when the years of a range run backwards", async () => {
+    const r = await call("search_papers", { query: "spaced repetition", from_year: 2020, to_year: 2015 });
+    expect(r.isError).toBe(true);
+    expect(r.code).toBe("invalid_range");
+    expect(r.text).toContain("to_year");
+  });
+  it("names the new filters when nothing matches", async () => {
+    const r = await call("search_papers", { query: "nothing", to_year: 2015, min_citations: 500 });
+    expect(r.isError).toBe(false);
+    expect(r.text).toContain("to_year");
+    expect(r.text).toContain("min_citations");
+  });
   it("shows a one line abstract under each search result", async () => {
     const r = await call("search_papers", { query: "spaced repetition", limit: 2 });
     expect(r.text).toContain("Abstract: Spaced repetition raises recall in students.");

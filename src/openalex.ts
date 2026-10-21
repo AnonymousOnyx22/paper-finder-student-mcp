@@ -156,10 +156,21 @@ async function getJson<T>(
 export async function search(
   api: OpenAlex,
   query: string,
-  opts: { fromYear?: number; openAccessOnly?: boolean; sort?: string; type?: string; limit: number },
+  opts: {
+    fromYear?: number;
+    toYear?: number;
+    minCitations?: number;
+    openAccessOnly?: boolean;
+    sort?: string;
+    type?: string;
+    limit: number;
+  },
 ): Promise<Work[]> {
   const filters: string[] = [];
   if (opts.fromYear) filters.push(`from_publication_date:${opts.fromYear}-01-01`);
+  if (opts.toYear) filters.push(`to_publication_date:${opts.toYear}-12-31`);
+  // OpenAlex reads ">" as more than, so one less than the wanted count gives "at least that many".
+  if (opts.minCitations !== undefined) filters.push(`cited_by_count:>${opts.minCitations - 1}`);
   if (opts.openAccessOnly) filters.push("is_oa:true");
   if (opts.type) filters.push(`type:${opts.type}`);
   const res: any = await getJson<any>(

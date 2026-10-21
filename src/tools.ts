@@ -20,6 +20,14 @@ import {
 
 const limit = z.number().int().min(1).max(25).default(8).describe("How many results to return, 1 to 25.");
 const fromYear = z.number().int().min(1900).max(2100).optional().describe("Only papers published in or after this year.");
+const toYear = z.number().int().min(1900).max(2100).optional().describe("Only papers published in or before this year.");
+const minCitations = z
+  .number()
+  .int()
+  .min(0)
+  .max(1000000)
+  .optional()
+  .describe("Only papers with at least this many citations.");
 const openAccessOnly = z.boolean().default(false).describe("Only papers with a free to read copy.");
 const ref = z.string().min(1).describe("A DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807.");
 const doi = z.string().min(2).describe("A DOI like 10.1038/nature14539, or a doi.org link. No OpenAlex ids here.");
@@ -111,10 +119,12 @@ export const tools: ToolDef<OpenAlex>[] = [
     name: "search_papers",
     title: "Search papers",
     description:
-      "Search scholarly papers by keywords. Returns title, authors, year, venue, citation count, DOI, a one line abstract and a free to read link when one exists. The results can be ordered, so you can get the most cited papers on a topic or the newest ones, and they can be limited to one kind of paper. Inputs: query (required keywords), from_year (optional earliest publication year), open_access_only (optional, false by default), type (optional, journal_article, preprint or book_chapter), sort (optional, relevance for the OpenAlex order, cited_by_count:desc for the most cited papers first, or publication_date:desc for the newest papers first), limit (optional, 1 to 25, default 8). Example prompt: 'find the most cited papers on spaced repetition since 2020.'",
+      "Search scholarly papers by keywords. Returns title, authors, year, venue, citation count, DOI, a one line abstract and a free to read link when one exists. The results can be ordered, so you can get the most cited papers on a topic or the newest ones, and they can be limited to one kind of paper, to a range of years or to a minimum number of citations. Inputs: query (required keywords), from_year (optional earliest publication year), to_year (optional latest publication year), min_citations (optional, keep only the papers with at least this many citations), open_access_only (optional, false by default), type (optional, journal_article, preprint or book_chapter), sort (optional, relevance for the OpenAlex order, cited_by_count:desc for the most cited papers first, or publication_date:desc for the newest papers first), limit (optional, 1 to 25, default 8). Example prompt: 'find the most cited papers on spaced repetition since 2020.'",
     inputSchema: {
       query: z.string().min(2).describe("Keywords, for example: spaced repetition exam performance."),
       from_year: fromYear,
+      to_year: toYear,
+      min_citations: minCitations,
       open_access_only: openAccessOnly,
       type: z
         .enum(["journal_article", "preprint", "book_chapter"])
@@ -127,8 +137,15 @@ export const tools: ToolDef<OpenAlex>[] = [
       limit,
     },
     run: async (a, api) => {
+      if (a.from_year !== undefined && a.to_year !== undefined && a.from_year > a.to_year)
+        throw new ToolError(
+          `from_year ${a.from_year} is after to_year ${a.to_year}. Give a to_year that is the same year as from_year or later.`,
+          "invalid_range",
+        );
       const works = await search(api, a.query, {
         fromYear: a.from_year,
+        toYear: a.to_year,
+        minCitations: a.min_citations,
         openAccessOnly: a.open_access_only,
         sort: SEARCH_SORTS[a.sort ?? "relevance"],
         type: WORK_TYPES[a.type ?? ""],
@@ -138,11 +155,17 @@ export const tools: ToolDef<OpenAlex>[] = [
         const fixes = ["Try fewer or broader keywords."];
         if (a.open_access_only) fixes.push("Set open_access_only to false, some good papers have no free copy.");
         if (a.from_year) fixes.push(`Lower from_year, nothing matched from ${a.from_year} onwards.`);
+        if (a.to_year) fixes.push(`Raise to_year, nothing matched up to ${a.to_year}.`);
+        if (a.min_citations !== undefined)
+          fixes.push(`Lower min_citations, nothing matched with ${a.min_citations} citations or more.`);
         if (a.type) fixes.push(`Drop the type filter, no ${TYPE_LABELS[a.type]} matched.`);
         return `No papers found for "${a.query}". ${fixes.join(" ")}`;
       }
       const head = [`Papers about "${a.query}"`];
       if (a.type) head.push(`${TYPE_LABELS[a.type]} only`);
+      if (a.to_year !== undefined)
+        head.push(a.from_year !== undefined ? `published ${a.from_year} to ${a.to_year}` : `published up to ${a.to_year}`);
+      if (a.min_citations !== undefined) head.push(`at least ${a.min_citations} citations`);
       head.push(SORT_LABELS[a.sort ?? "relevance"]);
       return `${head.join(", ")}\n\n${numberedWithSnippets(works)}`;
     },
