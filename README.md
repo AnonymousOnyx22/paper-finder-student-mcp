@@ -4,7 +4,13 @@
 [![downloads](https://img.shields.io/npm/dm/paper-finder-student-mcp.svg)](https://www.npmjs.com/package/paper-finder-student-mcp)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
-Paper Finder MCP is an academic paper search MCP server. Ask your AI to find real scholarly papers for an essay or research project, with authors, year, citation counts, DOIs, a one line abstract and a free to read link when one exists. Sort by citation count to get the most cited papers on a topic, or by date to get the newest ones. Ask for the papers a paper cites, or the papers that cite it, when you build a literature review. Results come straight from [OpenAlex](https://openalex.org), a free open catalog of scholarly works, so the papers are real, not invented. Free forever, no account and no key. Students often type things like 'find 5 sources for my essay on spaced repetition' or 'citations for my literature review'.
+Paper Finder MCP is an academic paper search MCP server. Ask your AI to find real scholarly papers for an essay or research project, with authors, year, citation counts, DOIs, a one line abstract and a free to read link when one exists.
+
+Sort by citation count to get the most cited papers on a topic, or by date to get the newest ones. Ask for the papers a paper cites, or the papers that cite it, when you build a literature review.
+
+Results come straight from [OpenAlex](https://openalex.org), a free open catalog of scholarly works, so the papers are real, not invented. Free forever, no account and no key.
+
+Students often type things like 'find 5 sources for my essay on spaced repetition' or 'citations for my literature review'.
 
 ## Install
 
@@ -12,7 +18,11 @@ Paper Finder MCP is an academic paper search MCP server. Ask your AI to find rea
 npx -y paper-finder-student-mcp
 ```
 
-Add this to your AI app's MCP config. For Claude Desktop that is `claude_desktop_config.json`.
+Add this to your AI app's MCP config. Where the file goes and what the key inside it is called depends on the app.
+
+### Claude Desktop
+
+The file is `claude_desktop_config.json`.
 
 ```json
 {
@@ -25,7 +35,67 @@ Add this to your AI app's MCP config. For Claude Desktop that is `claude_desktop
 }
 ```
 
+### Cursor
+
+The file is `~/.cursor/mcp.json` for every project, or `.cursor/mcp.json` for one project.
+
+```json
+{
+  "mcpServers": {
+    "paper-finder": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "paper-finder-student-mcp"]
+    }
+  }
+}
+```
+
+### VS Code
+
+The file is `.vscode/mcp.json` in your workspace. VS Code calls the key `servers` and asks for the `type`.
+
+```json
+{
+  "servers": {
+    "paper-finder": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["-y", "paper-finder-student-mcp"]
+    }
+  }
+}
+```
+
 Restart your AI app, then try one of the prompts below. You need Node.js 20 or newer. For Claude Code, run `claude mcp add paper-finder -- npx -y paper-finder-student-mcp`.
+
+## What it looks like
+
+This is what `search_papers` returns for the query "spaced repetition" when you ask for the most cited papers first.
+
+```text
+Papers about "spaced repetition", most cited first
+
+1. Spaced Repetition Promotes Efficient and Effective Learning (2016)
+  Sean H. K. Kang, Policy Insights from the Behavioral and Brain Sciences
+  405 citations. DOI 10.1177/2372732215624708. W2310690298
+  No free copy found
+  Abstract: Concern that students in the United States are less proficient in mathematics, science, and reading than their peers in other countries has led some to question whether American students spend enough...
+
+2. A Trainable Spaced Repetition Model for Language Learning (2016)
+  Burr Settles, Brendan Meeder, Annual Meeting of the Association for Computational Linguistics (ACL)
+  217 citations. DOI 10.18653/v1/p16-1174. W2514897959
+  Free to read, https://www.aclweb.org/anthology/P16-1174.pdf
+  Abstract: We present half-life regression (HLR), a novel model for spaced repetition practice with applications to second language acquisition.HLR combines psycholinguistic theory with modern machine learning...
+
+3. Enhancing human learning via spaced repetition optimization (2019)
+  Behzad Tabibian, Utkarsh Upadhyay, Abir De, et al., Proceedings of the National Academy of Sciences
+  181 citations. DOI 10.1073/pnas.1815156116. W2914319828
+  Free to read, https://doi.org/10.1073/pnas.1815156116
+  Abstract: Spaced repetition is a technique for efficient memorization which uses repeated review of content following a schedule determined by a spaced repetition algorithm to improve long-term retention.
+```
+
+Each result carries the title, the authors, the year, the venue, the citation count, the DOI, the OpenAlex id, a free to read link when one exists and the first line of the abstract, so you can judge a paper before you open it.
 
 ## Example prompts
 

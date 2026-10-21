@@ -15,6 +15,9 @@
 
 ## Unreleased
 
+- The README first screen now has an install snippet for Claude Desktop, Cursor and VS Code, so each app gets the config file it reads and the key it calls. Cursor reads `mcpServers` in `~/.cursor/mcp.json`, and VS Code reads `servers` in `.vscode/mcp.json` with the `type` set to `stdio`.
+- The README first screen now shows a real `search_papers` result for "spaced repetition", so people can see the title, authors, year, venue, citation count, DOI, OpenAlex id, free to read link and one line abstract that come back before they install anything.
+- The opening paragraph of the README is now four short paragraphs instead of one long block.
 - New `paper_references` tool that lists the papers a paper cites, so a literature review can get the bibliography of a paper as well as the papers that cite it. The `cited_by` tool still gives the inbound side. The list is read from the OpenAlex reference list of that paper, and a `sort` input puts the most cited references first or the oldest ones first, which reads like a bibliography from the beginning. The new tool is advertised in the README tool table, llms.txt and glama.json next to the other tools.
 - `search_papers` takes a `sort` input, so a search can ask for the most cited papers on a topic with `cited_by_count:desc`, or the newest papers with `publication_date:desc`. Without it the results stay in the OpenAlex relevance order. The tool also takes a `type` input, `journal_article`, `preprint` or `book_chapter`, to keep the results to one kind of paper. Both inputs are optional, so saved prompts keep working as they are.
 - Search results now carry a one line abstract, cut from the OpenAlex abstract, so a paper can be judged from the search result before it is opened.

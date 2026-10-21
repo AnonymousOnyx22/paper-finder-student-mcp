@@ -1,9 +1,10 @@
 # paper-finder-student-mcp
 
-> Academic paper search MCP server through OpenAlex. No key needed. Free and open source MCP server for AI apps (Claude, ChatGPT, Cursor, Copilot and others).
+> Academic paper search MCP server through OpenAlex. No key needed. Free and open source MCP server for AI apps (Claude, ChatGPT, Cursor, VS Code, Copilot and others).
 
 ## Setup
 - Run with npx -y paper-finder-student-mcp
+- Add it to your MCP config. Claude Desktop reads claude_desktop_config.json, Cursor reads ~/.cursor/mcp.json, VS Code reads .vscode/mcp.json and calls the key servers. All three start the server with command npx and args ["-y", "paper-finder-student-mcp"].
 - No key or account. Optional OPENALEX_EMAIL for OpenAlex's polite pool.
 - Papers are identified by DOI (10.xxxx/yyy) or OpenAlex id (W followed by digits).
 
