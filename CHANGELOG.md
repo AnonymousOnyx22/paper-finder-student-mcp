@@ -15,6 +15,7 @@
 
 ## Unreleased
 
+- `list_author_papers` now looks the author name up in the OpenAlex author records and then takes the papers from that author id, so initials, a different order of the name parts and other spellings of the same person still find the papers, and papers by other people with a similar byline no longer creep in. The tool also accepts an OpenAlex author id such as `A5108843829`, it lists the other profiles that carry the same name, it points out when it had to settle for the closest match, and it still falls back to matching the name as it is written on the papers when OpenAlex has no record for it.
 - A test now keeps the tool count, names, descriptions and parameters the same across the README tool table, llms.txt and glama.json, and checks them against the tools in src/tools.ts, so a directory never lists a tool the server dropped or an old description for one.
 - The README and llms.txt no longer quote a works count for OpenAlex, since that number goes out of date, and the text that said how many tools there are no longer states a number, so it stays true when a tool is added.
 - Merged the DOI lookup into `get_paper` with an optional `doi` input and the related work lookup into `related_papers`. `get_paper_by_doi` and `get_related_work` remain as deprecated aliases so saved prompts keep working, while the README, llms.txt and glama.json now advertise the six main tools.

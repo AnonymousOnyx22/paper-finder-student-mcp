@@ -1,6 +1,19 @@
 import { z } from "zod";
 import { ToolError, type ToolDef } from "./core/tools.js";
-import { type OpenAlex, type Work, abstractOf, authorPapers, citedBy, getWork, line, related, search } from "./openalex.js";
+import {
+  type OpenAlex,
+  type ResolvedAuthor,
+  type Work,
+  abstractOf,
+  authorIdPapers,
+  authorPapers,
+  citedBy,
+  getWork,
+  line,
+  related,
+  resolveAuthor,
+  search,
+} from "./openalex.js";
 
 const limit = z.number().int().min(1).max(25).default(8).describe("How many results to return, 1 to 25.");
 const fromYear = z.number().int().min(1900).max(2100).optional().describe("Only papers published in or after this year.");
@@ -33,11 +46,28 @@ function relatedRun(heading: string) {
   };
 }
 
-function noAuthorMatches(author: string, usedYear?: number, usedOa?: boolean): string {
-  const fixes = ["Try the name as it appears on the paper, for example John Smith."];
+function noAuthorMatches(author: string, usedYear?: number, usedOa?: boolean, resolved?: ResolvedAuthor): string {
+  const fixes: string[] = [];
+  if (resolved) {
+    fixes.push(
+      `OpenAlex knows that name as "${resolved.profile.display_name ?? author}" (${resolved.profile.id}), but no paper came back for it.`,
+    );
+  } else {
+    fixes.push("OpenAlex has no author record under that name, and no paper carries it either.");
+    fixes.push("Try the name as it appears on the paper, for example John Smith.");
+  }
   if (usedOa) fixes.push("Set open_access_only to false.");
   if (usedYear) fixes.push(`Lower from_year, nothing matched from ${usedYear} onwards.`);
-  return `No papers found for author "${author}". ${fixes.join(" ")}`;
+  const others = resolved ? sameNameNote(resolved) : "";
+  return `No papers found for author "${author}". ${fixes.join(" ")}${others ? ` ${others}` : ""}`;
+}
+
+/** The other OpenAlex profiles that carry the same name, so the reader can pick another one. */
+function sameNameNote(resolved: ResolvedAuthor): string {
+  const others = resolved.sameName.slice(0, 4);
+  if (others.length === 0) return "";
+  const list = others.map((o) => `${o.id} (${o.works_count ?? 0} papers)`).join(", ");
+  return `Other OpenAlex profiles with this name: ${list}. Pass one of those ids as author to see that profile.`;
 }
 
 export const tools: ToolDef<OpenAlex>[] = [
@@ -137,17 +167,42 @@ export const tools: ToolDef<OpenAlex>[] = [
     name: "list_author_papers",
     title: "List papers by an author",
     description:
-      "Papers by one author, most cited first. Matches the author name as it is written on the papers, so exact spelling matters. Inputs: author (required, the name as it appears on the paper, for example Jane Doe), from_year (optional earliest publication year), open_access_only (optional, false by default), limit (optional, 1 to 25, default 8). Example prompt: 'list papers by John Dewey on education since 1950.'",
+      "Papers by one author, most cited first. The name is looked up in the OpenAlex author records first, so initials, a different order of the name parts and other spellings of the same person still find the papers, and the papers are then taken from that author id. When OpenAlex has no record for the name, the papers are matched by the name as it is written on them. Inputs: author (required, the author name, for example Jane Doe, or an OpenAlex author id like A5108843829), from_year (optional earliest publication year), open_access_only (optional, false by default), limit (optional, 1 to 25, default 8). Example prompt: 'list papers by John Dewey on education since 1950.'",
     inputSchema: {
-      author: z.string().min(2).describe("The author name as it appears on the paper, for example Jane Doe."),
+      author: z
+        .string()
+        .min(2)
+        .describe("The author name, for example Jane Doe. Initials and other name forms work. An OpenAlex author id like A5108843829 works too."),
       from_year: fromYear,
       open_access_only: openAccessOnly,
       limit,
     },
     run: async (a, api) => {
-      const works = await authorPapers(api, a.author, { fromYear: a.from_year, openAccessOnly: a.open_access_only, limit: a.limit });
-      if (works.length === 0) return noAuthorMatches(a.author, a.from_year, a.open_access_only);
-      return `Papers by "${a.author}", most cited first\n\n` + numbered(works);
+      const opts = { fromYear: a.from_year, openAccessOnly: a.open_access_only, limit: a.limit };
+      const resolved = await resolveAuthor(api, a.author);
+      if (resolved) {
+        const works = await authorIdPapers(api, resolved.profile.id, opts);
+        if (works.length > 0) {
+          const name = resolved.profile.display_name ?? a.author;
+          const head = [`Papers by "${name}" (OpenAlex author ${resolved.profile.id}), most cited first`];
+          if (resolved.approximate)
+            head.push(`OpenAlex had no record for "${a.author}" as it was typed, so this is the closest match.`);
+          const others = sameNameNote(resolved);
+          if (others) head.push(others);
+          return `${head.join("\n")}\n\n${numbered(works)}`;
+        }
+      }
+      const works = await authorPapers(api, a.author, opts);
+      if (works.length > 0) {
+        const head = [`Papers matching the name "${a.author}" as it is written on them, most cited first`];
+        head.push(
+          resolved
+            ? `OpenAlex knows that name as "${resolved.profile.display_name ?? a.author}" (${resolved.profile.id}), but no paper came back for it under these filters, so the papers were matched by the name on the paper.`
+            : "OpenAlex has no author record for that name, so the papers were matched by the name on the paper.",
+        );
+        return `${head.join("\n")}\n\n${numbered(works)}`;
+      }
+      return noAuthorMatches(a.author, a.from_year, a.open_access_only, resolved ?? undefined);
     },
   },
 ];

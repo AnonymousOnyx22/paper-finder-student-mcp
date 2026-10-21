@@ -40,7 +40,7 @@
     },
     {
       "name": "list_author_papers",
-      "description": "Papers by one author, most cited first. Matches the author name as it is written on the papers, so exact spelling matters. Inputs: author (required, the name as it appears on the paper, for example Jane Doe), from_year (optional earliest publication year), open_access_only (optional, false by default), limit (optional, 1 to 25, default 8). Example prompt: 'list papers by John Dewey on education since 1950.'",
+      "description": "Papers by one author, most cited first. The name is looked up in the OpenAlex author records first, so initials, a different order of the name parts and other spellings of the same person still find the papers, and the papers are then taken from that author id. When OpenAlex has no record for the name, the papers are matched by the name as it is written on them. Inputs: author (required, the author name, for example Jane Doe, or an OpenAlex author id like A5108843829), from_year (optional earliest publication year), open_access_only (optional, false by default), limit (optional, 1 to 25, default 8). Example prompt: 'list papers by John Dewey on education since 1950.'",
       "parameters": ["author", "from_year", "open_access_only", "limit"]
     }
   ]

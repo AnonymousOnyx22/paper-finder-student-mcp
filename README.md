@@ -37,6 +37,7 @@ Restart your AI app, then try one of the prompts below. You need Node.js 20 or n
 - "What papers are related to DOI 10.48550/arXiv.1706.03762?"
 - "Who cited DOI 10.48550/arXiv.1706.03762?"
 - "List papers by John Dewey on education since 1950."
+- "List papers by A. Duckworth on grit."
 
 ## How it compares
 
@@ -62,15 +63,16 @@ Paper Finder MCP is the one where every line has a live catalog record behind it
 | `find_open_access_pdf` | The free to read copy of one paper, preferring a PDF link, or a plain note that none exists | `paper` |
 | `related_papers` | Papers OpenAlex marks as related to a paper | `paper`, `limit` |
 | `cited_by` | Newer papers that cite a paper, most recent first | `paper`, `limit` |
-| `list_author_papers` | Papers by one author, most cited first | `author`, `from_year`, `open_access_only`, `limit` |
+| `list_author_papers` | Papers by one author, most cited first, with the name looked up in the OpenAlex author records | `author`, `from_year`, `open_access_only`, `limit` |
 
-Every tool description states its inputs and one example prompt, so clients can pick the right tool without reading this page. `paper` accepts a DOI like `10.1038/nature14539`, a doi.org link, or an OpenAlex id like `W2741809807`. `doi` accepts a DOI or doi.org link with no OpenAlex ids, and `get_paper` takes either `paper` or `doi`, so a DOI lookup has one home. `limit` is 1 to 25, default 8. `list_author_papers` matches the author name as it is written on the papers, so exact spelling matters.
+Every tool description states its inputs and one example prompt, so clients can pick the right tool without reading this page. `paper` accepts a DOI like `10.1038/nature14539`, a doi.org link, or an OpenAlex id like `W2741809807`. `doi` accepts a DOI or doi.org link with no OpenAlex ids, and `get_paper` takes either `paper` or `doi`, so a DOI lookup has one home. `limit` is 1 to 25, default 8. `list_author_papers` looks the name up in the OpenAlex author records first and then takes the papers from that author id, so `J. Smith`, `Smith, John` and `John Smith` all reach the same papers, even when the name on the paper is written differently. When the name cannot be resolved that way, the tool matches the name as it is written on the papers instead.
 
 `get_paper_by_doi` and `get_related_work` still exist as deprecated aliases so saved prompts keep working. They do the same work as `get_paper` with `doi` and `related_papers`, and new prompts should use those two instead.
 
 ## Good to know
 
 - Lookups that miss are flagged as errors with a stable code, not empty results. A wrong or unknown reference returns a not found error that suggests searching by the title or checking the DOI format, and a rate limit returns an error that says to wait about a minute and retry. A missing free copy is not an error, `find_open_access_pdf` just says that none was found.
+- Author names go through the OpenAlex author records, so a name that is written in another form on the papers still finds them. OpenAlex sometimes keeps more than one profile for a name. In that case the tool shows the profile whose name matches best and has the most papers, and it lists the others. You can pass one of those ids, such as `A5108843829`, as `author` to see that profile.
 - Citation counts and open access links come from OpenAlex and can be a little behind the publisher.
 - If you want faster, more reliable service for heavy use, set `OPENALEX_EMAIL` to your own email. OpenAlex asks for it so they can reach you, and it is sent only to OpenAlex.
 - `OPENALEX_BASE_URL` points the server somewhere else, which the tests use.

@@ -4,7 +4,7 @@ import type { AddressInfo } from "node:net";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { createServer, makeApi } from "../src/server.js";
-import { abstractOf, normalizeRef } from "../src/openalex.js";
+import { abstractOf, nameMatch, normalizeRef, spellingMatch } from "../src/openalex.js";
 
 const work = (n: number, extra: Record<string, unknown> = {}) => ({
   id: `https://openalex.org/W${n}`,
@@ -18,6 +18,22 @@ const work = (n: number, extra: Record<string, unknown> = {}) => ({
   ...extra,
 });
 
+const authorProfile = (id: string, name: string, works = 5, cited = 50, alternatives: string[] = []) => ({
+  id: `https://openalex.org/${id}`,
+  display_name: name,
+  works_count: works,
+  cited_by_count: cited,
+  display_name_alternatives: alternatives,
+});
+
+const profiles: Record<string, ReturnType<typeof authorProfile>> = {
+  A100: authorProfile("A100", "Ada Lovelace", 12, 300),
+  A101: authorProfile("A101", "Ada Lovelace", 3, 10),
+  A200: authorProfile("A200", "John Dewey", 30, 900, ["Dewey, John", "J Dewey"]),
+  A300: authorProfile("A300", "John Smith", 20, 500, ["J. Smith", "Smith, John"]),
+  A400: authorProfile("A400", "Jonathan James Deeks", 800, 50000, ["Jon Deeks"]),
+};
+
 let srv: http.Server;
 let client: Client;
 const seen: URL[] = [];
@@ -30,6 +46,20 @@ beforeAll(async () => {
       res.writeHead(code, { "content-type": "application/json" });
       res.end(JSON.stringify(d));
     };
+    if (url.pathname === "/authors") {
+      const search = (url.searchParams.get("search") ?? "").replace(/[,.]/g, "").replace(/\s+/g, " ").trim();
+      if (search.toLowerCase().includes("ratelimit")) return json({ error: "Rate limit exceeded" }, 429);
+      if (search === "Ada Lovelace") return json({ results: [profiles.A100, profiles.A101] });
+      if (search === "Dewey") return json({ results: [profiles.A200] });
+      if (search === "J Smith" || search === "Smith") return json({ results: [profiles.A300] });
+      if (search === "Jon" || search === "Jonn") return json({ results: [profiles.A400] });
+      return json({ results: [] });
+    }
+    if (url.pathname.startsWith("/authors/")) {
+      const profile = profiles[url.pathname.slice("/authors/".length)];
+      if (!profile) return json({ error: "not found" }, 404);
+      return json(profile);
+    }
     if (url.pathname === "/works") {
       const q = url.searchParams.get("search");
       const filter = url.searchParams.get("filter") ?? "";
@@ -37,7 +67,11 @@ beforeAll(async () => {
       if (q === "nothing") return json({ results: [] });
       if (filter.startsWith("openalex:")) return json({ results: filter.slice(9).split("|").map((id) => work(Number(id.slice(1)))) });
       if (filter.startsWith("cites:")) return json({ results: [work(500), work(501)] });
+      if (filter.startsWith("author.id:A100")) return json({ results: [work(7), work(8)] });
+      if (filter.startsWith("author.id:A200")) return json({ results: [work(9)] });
+      if (filter.startsWith("author.id:A300")) return json({ results: [work(10)] });
       if (filter.startsWith("raw_author_name.search:Nobody")) return json({ results: [] });
+      if (filter.startsWith("raw_author_name.search:Jon Deweey")) return json({ results: [] });
       if (filter.toLowerCase().includes("ratelimit")) return json({ error: "Rate limit exceeded" }, 429);
       if (filter.startsWith("raw_author_name.search:")) return json({ results: [work(7), work(8)] });
       return json({ results: [work(2), work(3)] });
@@ -68,6 +102,19 @@ describe("helpers", () => {
     expect(normalizeRef("https://doi.org/10.1000/abc")).toBe("doi:10.1000/abc");
     expect(normalizeRef("https://openalex.org/w123")).toBe("W123");
     expect(() => normalizeRef("nope")).toThrow("not a DOI");
+  });
+  it("scores author names that point at the same person close together", () => {
+    expect(nameMatch("John Dewey", "John Dewey")).toBe(1);
+    expect(nameMatch("Dewey, John", "John Dewey")).toBeGreaterThan(0.8);
+    expect(nameMatch("J. Smith", "John Smith")).toBeGreaterThan(0.8);
+    expect(nameMatch("Jon Dewey", "John Dewey")).toBeGreaterThan(0.85);
+    expect(nameMatch("John Dewey", "Marie Curie")).toBeLessThan(0.5);
+    expect(nameMatch("John Dewey", "")).toBe(0);
+  });
+  it("scores a wrong spelling lower than the same name", () => {
+    expect(spellingMatch("Jon Dewey", "John Dewey")).toBeGreaterThan(0.85);
+    expect(spellingMatch("Jon Deweey", "Jonathan James Deeks")).toBeLessThan(0.85);
+    expect(spellingMatch("John Dewey", "John Dewey")).toBe(1);
   });
 });
 
@@ -145,18 +192,65 @@ describe("MCP tools", () => {
     expect(none.text).toContain("No free copy of \"Paper 3\"");
     expect((await call("find_open_access_pdf", { paper: "10.1000/unknown" })).code).toBe("not_found");
   });
-  it("lists an author's papers most cited first and blames the name when nothing matches", async () => {
+  it("resolves the author name to an OpenAlex author id and takes the papers from that id", async () => {
     const r = await call("list_author_papers", { author: "Ada Lovelace", from_year: 2019, open_access_only: true, limit: 3 });
-    expect(r.text).toContain("Papers by \"Ada Lovelace\", most cited first");
+    expect(r.text).toContain('Papers by "Ada Lovelace" (OpenAlex author A100), most cited first');
     expect(r.text).toContain("Paper 7");
     const u = seen[seen.length - 1];
-    expect(u.searchParams.get("filter")).toBe("raw_author_name.search:Ada Lovelace,from_publication_date:2019-01-01,is_oa:true");
+    expect(u.searchParams.get("filter")).toBe("author.id:A100,from_publication_date:2019-01-01,is_oa:true");
     expect(u.searchParams.get("sort")).toBe("cited_by_count:desc");
     expect(u.searchParams.get("per_page")).toBe("3");
     expect(u.searchParams.get("mailto")).toBe("me@example.com");
+    expect(seen.some((s) => s.pathname === "/authors" && s.searchParams.get("search") === "Ada Lovelace")).toBe(true);
+  });
+  it("lists the other OpenAlex profiles that carry the same name", async () => {
+    const r = await call("list_author_papers", { author: "Ada Lovelace" });
+    expect(r.text).toContain("Other OpenAlex profiles with this name: A101 (3 papers).");
+    expect(r.text).toContain("Pass one of those ids as author");
+  });
+  it("takes an OpenAlex author id as it is", async () => {
+    const r = await call("list_author_papers", { author: "A200" });
+    expect(r.text).toContain('Papers by "John Dewey" (OpenAlex author A200), most cited first');
+    expect(r.text).toContain("Paper 9");
+    expect(seen[seen.length - 1].searchParams.get("filter")).toBe("author.id:A200");
+    const bad = await call("list_author_papers", { author: "A999" });
+    expect(bad.isError).toBe(true);
+    expect(bad.code).toBe("not_found");
+    expect(bad.text).toContain("no author with the id A999");
+  });
+  it("finds an author whose name is written in another form", async () => {
+    const r = await call("list_author_papers", { author: "J. Smith" });
+    expect(r.text).toContain('Papers by "John Smith" (OpenAlex author A300), most cited first');
+    expect(seen[seen.length - 1].searchParams.get("filter")).toBe("author.id:A300");
+  });
+  it("takes the closest match when the name was typed slightly wrong", async () => {
+    const r = await call("list_author_papers", { author: "Jon Dewey" });
+    expect(r.text).toContain('Papers by "John Dewey" (OpenAlex author A200), most cited first');
+    expect(r.text).toContain('OpenAlex had no record for "Jon Dewey" as it was typed, so this is the closest match.');
+    expect(seen[seen.length - 1].searchParams.get("filter")).toBe("author.id:A200");
+  });
+  it("takes the closest match when the name parts are in another order and one is wrong", async () => {
+    const r = await call("list_author_papers", { author: "Dewey, Jonn" });
+    expect(r.text).toContain('Papers by "John Dewey" (OpenAlex author A200), most cited first');
+    expect(r.text).toContain('OpenAlex had no record for "Dewey, Jonn" as it was typed, so this is the closest match.');
+  });
+  it("does not settle for a different person when the name does not match", async () => {
+    const r = await call("list_author_papers", { author: "Jon Deweey" });
+    expect(r.text).toContain('No papers found for author "Jon Deweey"');
+    expect(r.text).not.toContain("A400");
+    expect(r.text).not.toContain("Jonathan James Deeks");
+  });
+  it("falls back to the name on the paper when OpenAlex has no author record", async () => {
+    const r = await call("list_author_papers", { author: "Ada Byron" });
+    expect(r.text).toContain('Papers matching the name "Ada Byron" as it is written on them, most cited first');
+    expect(r.text).toContain("OpenAlex has no author record for that name");
+    expect(seen[seen.length - 1].searchParams.get("filter")).toBe("raw_author_name.search:Ada Byron");
+  });
+  it("says when nothing matches and blames the name and the filters", async () => {
     const empty = await call("list_author_papers", { author: "Nobody" });
     expect(empty.isError).toBe(false);
-    expect(empty.text).toContain("No papers found for author \"Nobody\"");
+    expect(empty.text).toContain('No papers found for author "Nobody"');
+    expect(empty.text).toContain("OpenAlex has no author record under that name");
   });
   it("finds related and citing papers", async () => {
     expect((await call("related_papers", { paper: "W2", limit: 2 })).text).toContain("Paper 10");
