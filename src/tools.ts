@@ -189,8 +189,9 @@ export const tools: ToolDef<OpenAlex>[] = [
     name: "get_paper_by_doi",
     title: "Get a paper by DOI",
     description:
-      "Deprecated, use get_paper with the doi input instead. Kept so saved prompts keep working. Details for one paper looked up by DOI only, including the abstract and a free to read link when one exists. An OpenAlex id or a malformed DOI returns an invalid ref error that points at get_paper. Inputs: doi (required, a DOI like 10.1038/nature14539 or a doi.org link). Example prompt: 'get the paper with DOI 10.1038/nature14539.'",
+      "Deprecated, use get_paper with the doi input instead. Kept so saved prompts keep working, and it still answers when a prompt calls it by name. Details for one paper looked up by DOI only, including the abstract and a free to read link when one exists. An OpenAlex id or a malformed DOI returns an invalid ref error that points at get_paper. Inputs: doi (required, a DOI like 10.1038/nature14539 or a doi.org link). Example prompt: 'get the paper with DOI 10.1038/nature14539.'",
     inputSchema: { doi },
+    deprecated: true,
     run: async (a, api) =>
       paperDetails(api, bareDoi(a.doi, "get_paper_by_doi takes a DOI like 10.1038/nature14539. Use get_paper if you have an OpenAlex id like W2741809807.")),
   },
@@ -223,16 +224,18 @@ export const tools: ToolDef<OpenAlex>[] = [
     name: "related_papers",
     title: "Related papers",
     description:
-      "Deprecated, use find_related_papers instead, it returns the same list. Kept so saved prompts keep working. Papers that OpenAlex lists as related to a given paper. Inputs: paper (required, a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807), limit (optional, 1 to 25, default 8). Example prompt: 'what papers are related to DOI 10.48550/arXiv.1706.03762?'",
+      "Deprecated, use find_related_papers instead, it returns the same list. Kept so saved prompts keep working, and it still answers when a prompt calls it by name. Papers that OpenAlex lists as related to a given paper. Inputs: paper (required, a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807), limit (optional, 1 to 25, default 8). Example prompt: 'what papers are related to DOI 10.48550/arXiv.1706.03762?'",
     inputSchema: { paper: ref, limit },
+    deprecated: true,
     run: relatedRun("Related to"),
   },
   {
     name: "get_related_work",
     title: "Get related work",
     description:
-      "Deprecated, use find_related_papers instead, it returns the same list. Kept so saved prompts keep working. Other papers on the same topic as one paper. Inputs: paper (required, a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807), limit (optional, 1 to 25, default 8). Example prompt: 'what related work should I read for DOI 10.48550/arXiv.1706.03762?'",
+      "Deprecated, use find_related_papers instead, it returns the same list. Kept so saved prompts keep working, and it still answers when a prompt calls it by name. Other papers on the same topic as one paper. Inputs: paper (required, a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807), limit (optional, 1 to 25, default 8). Example prompt: 'what related work should I read for DOI 10.48550/arXiv.1706.03762?'",
     inputSchema: { paper: ref, limit },
+    deprecated: true,
     run: relatedRun("Related work for"),
   },
   {
@@ -247,8 +250,9 @@ export const tools: ToolDef<OpenAlex>[] = [
     name: "cited_by",
     title: "Cited by",
     description:
-      "Deprecated, use find_citing_papers instead, it returns the same list. Kept so saved prompts keep working. Newer papers that cite a given paper, most recent first. Inputs: paper (required, a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807), limit (optional, 1 to 25, default 8). Example prompt: 'who cited DOI 10.48550/arXiv.1706.03762?'",
+      "Deprecated, use find_citing_papers instead, it returns the same list. Kept so saved prompts keep working, and it still answers when a prompt calls it by name. Newer papers that cite a given paper, most recent first. Inputs: paper (required, a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807), limit (optional, 1 to 25, default 8). Example prompt: 'who cited DOI 10.48550/arXiv.1706.03762?'",
     inputSchema: { paper: ref, limit },
+    deprecated: true,
     run: (a, api) => citingPapers(a, api),
   },
   {

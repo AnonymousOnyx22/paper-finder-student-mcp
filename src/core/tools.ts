@@ -1,4 +1,5 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
+import { ListToolsRequestSchema, type Tool } from "@modelcontextprotocol/sdk/types.js";
 import { z } from "zod";
 import { ApiError } from "./http.js";
 
@@ -10,6 +11,8 @@ export interface ToolDef<Api> {
   description: string;
   inputSchema: Shape;
   run: (args: any, api: Api) => Promise<string>;
+  /** An old name kept for saved prompts. It stays callable but is left out of the tool list. */
+  deprecated?: boolean;
 }
 
 export interface ToolResult {
@@ -40,6 +43,25 @@ export async function runTool<Api>(tool: ToolDef<Api>, args: unknown, api: Api):
   }
 }
 
+/** The inputs of a tool as JSON Schema, in the shape a client expects. */
+function inputSchemaOf(shape: Shape): Tool["inputSchema"] {
+  return z.toJSONSchema(z.object(shape), { target: "draft-07", io: "input" }) as Tool["inputSchema"];
+}
+
+/** The tools a client gets to see. The deprecated aliases keep working but stay out of this list. */
+function listedTools<Api>(tools: ToolDef<Api>[]): Tool[] {
+  return tools
+    .filter((tool) => !tool.deprecated)
+    .map((tool) => ({
+      name: tool.name,
+      title: tool.title,
+      description: tool.description,
+      inputSchema: inputSchemaOf(tool.inputSchema),
+      annotations: { readOnlyHint: true, openWorldHint: true },
+      execution: { taskSupport: "forbidden" as const },
+    }));
+}
+
 export function registerTools<Api>(server: McpServer, tools: ToolDef<Api>[], api: Api): void {
   for (const tool of tools) {
     server.registerTool(
@@ -53,6 +75,9 @@ export function registerTools<Api>(server: McpServer, tools: ToolDef<Api>[], api
       async (args: unknown) => runTool(tool, args, api),
     );
   }
+  // Every tool stays registered, so a saved prompt that calls an old name still gets an answer.
+  // The list a client asks for holds the current tools only.
+  server.server.setRequestHandler(ListToolsRequestSchema, async () => ({ tools: listedTools(tools) }));
 }
 
 /** Format an ISO date as a short readable string, or "no due date". */

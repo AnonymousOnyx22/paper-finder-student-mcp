@@ -36,8 +36,8 @@ function readmeToolRows(text: string): { name: string; params: string[] }[] {
     });
 }
 
-const advertised = tools.filter((t) => !t.description.startsWith("Deprecated"));
-const deprecated = tools.filter((t) => t.description.startsWith("Deprecated"));
+const advertised = tools.filter((t) => !t.deprecated);
+const deprecated = tools.filter((t) => t.deprecated);
 
 const llmsToolLines = section(llms, "Tools")
   .split("\n")
@@ -100,9 +100,17 @@ describe("llms.txt, glama.json and README tool table", () => {
       "related_papers",
     ]);
     for (const t of deprecated) {
+      expect(t.description, `${t.name} should say that it is deprecated`).toMatch(/^Deprecated/);
       expect(llms).not.toContain(`- ${t.name}:`);
       expect(glama.tools.map((g) => g.name)).not.toContain(t.name);
       expect(readmeTools).not.toContain(t.name);
+    }
+    for (const t of advertised) expect(t.deprecated, `${t.name} should not be deprecated`).toBeFalsy();
+  });
+  it("says in the README and llms.txt that the aliases are not in the tool list", () => {
+    for (const text of [readme, llms]) {
+      expect(text).toContain("cited_by");
+      expect(text).toMatch(/not in the tool list/);
     }
   });
   it("names OpenAlex and the no key needed claim verbatim", () => {

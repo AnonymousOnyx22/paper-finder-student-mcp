@@ -4,6 +4,7 @@ import type { AddressInfo } from "node:net";
 import { Client } from "@modelcontextprotocol/sdk/client/index.js";
 import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { createServer, makeApi } from "../src/server.js";
+import { tools as toolDefs } from "../src/tools.js";
 import { abstractOf, nameMatch, normalizeRef, snippetOf, spellingMatch } from "../src/openalex.js";
 
 const work = (n: number, extra: Record<string, unknown> = {}) => ({
@@ -143,25 +144,31 @@ describe("helpers", () => {
 });
 
 describe("MCP tools", () => {
-  it("lists eleven read only tools", async () => {
+  it("lists the current tools and leaves the deprecated aliases out", async () => {
     const tools = (await client.listTools()).tools;
     expect(tools.map((t) => t.name).sort()).toEqual([
-      "cited_by",
       "find_citing_papers",
       "find_open_access_pdf",
       "find_related_papers",
       "get_paper",
-      "get_paper_by_doi",
-      "get_related_work",
       "list_author_papers",
       "paper_references",
-      "related_papers",
       "search_papers",
     ]);
     for (const t of tools) expect(t.annotations?.readOnlyHint).toBe(true);
   });
+  it("keeps the deprecated aliases callable although they are not listed", async () => {
+    const listed = (await client.listTools()).tools.map((t) => t.name);
+    for (const name of ["cited_by", "related_papers", "get_paper_by_doi", "get_related_work"]) {
+      expect(listed, name).not.toContain(name);
+    }
+    expect((await call("cited_by", { paper: "W2" })).text).toContain("Paper 500");
+    expect((await call("related_papers", { paper: "W2", limit: 2 })).text).toContain("Paper 10");
+    expect((await call("get_related_work", { paper: "W2", limit: 2 })).text).toContain("Paper 10");
+    expect((await call("get_paper_by_doi", { doi: "10.1000/p2" })).text).toContain("Abstract");
+  });
   it("describes the inputs and one example prompt for every tool, with no dashes", async () => {
-    for (const t of (await client.listTools()).tools) {
+    for (const t of [...(await client.listTools()).tools, ...toolDefs]) {
       expect(t.description).toContain("Inputs:");
       expect(t.description).toContain("Example prompt:");
       expect(t.description).not.toMatch(/[—–]/);

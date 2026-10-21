@@ -4,7 +4,7 @@
     "AnonymousOnyx22"
   ],
   "name": "paper-finder-student-mcp",
-  "description": "Academic paper search MCP server. Search scholarly papers, find open access copies and related work through OpenAlex (https://openalex.org), with no key needed. The tools listed below, plus deprecated aliases kept for saved prompts.",
+  "description": "Academic paper search MCP server. Search scholarly papers, find open access copies and related work through OpenAlex (https://openalex.org), with no key needed. The tools listed below are the ones a client sees, and the old aliases still answer for saved prompts.",
   "repository": {
     "url": "https://github.com/AnonymousOnyx22/paper-finder-student-mcp",
     "source": "github"
