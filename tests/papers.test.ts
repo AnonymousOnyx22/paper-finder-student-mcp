@@ -80,19 +80,20 @@ beforeAll(async () => {
       }
       if (filter.startsWith("cites:"))
         return json({
+          meta: { count: 120 },
           results: [
             work(500, { abstract_inverted_index: abstractIndex(["A", "paper", "that", "cites", "the", "base."]) }),
             work(501, { abstract_inverted_index: abstractIndex(["Another", "citing", "paper."]) }),
           ],
         });
-      if (filter.startsWith("author.id:A100")) return json({ results: [work(7), work(8)] });
-      if (filter.startsWith("author.id:A200")) return json({ results: [work(9)] });
-      if (filter.startsWith("author.id:A300")) return json({ results: [work(10)] });
+      if (filter.startsWith("author.id:A100")) return json({ meta: { count: 30 }, results: [work(7), work(8)] });
+      if (filter.startsWith("author.id:A200")) return json({ meta: { count: 1 }, results: [work(9)] });
+      if (filter.startsWith("author.id:A300")) return json({ meta: { count: 1 }, results: [work(10)] });
       if (filter.startsWith("raw_author_name.search:Nobody")) return json({ results: [] });
       if (filter.startsWith("raw_author_name.search:Jon Deweey")) return json({ results: [] });
       if (filter.toLowerCase().includes("ratelimit")) return json({ error: "Rate limit exceeded" }, 429);
       if (filter.startsWith("raw_author_name.search:")) return json({ results: [work(7), work(8)] });
-      return json({ results: [work(2, { abstract_inverted_index: abstractIndex(["Spaced", "repetition", "raises", "recall", "in", "students."]) }), work(3, { abstract_inverted_index: abstractIndex(["A", "study", "of", "testing", "effects."]) })] });
+      return json({ meta: { count: 4312 }, results: [work(2, { abstract_inverted_index: abstractIndex(["Spaced", "repetition", "raises", "recall", "in", "students."]) }), work(3, { abstract_inverted_index: abstractIndex(["A", "study", "of", "testing", "effects."]) })] });
     }
     if (url.pathname === "/works/doi:10.1000/ratelimited") return json({ error: "Rate limit exceeded" }, 429);
     if (url.pathname === "/works/doi:10.1000/outage") return json({ error: "Upstream failure" }, 500);
@@ -328,6 +329,42 @@ describe("MCP tools", () => {
     expect(r.text).toContain("Abstract: Spaced repetition raises recall in students.");
     expect(r.text).toContain("Abstract: A study of testing effects.");
     expect(seen[seen.length - 1].searchParams.get("select")).toContain("abstract_inverted_index");
+  });
+  it("shows how many papers matched and names the next page", async () => {
+    const r = await call("search_papers", { query: "spaced repetition", limit: 2 });
+    expect(r.text).toContain("Showing 1 to 2 of 4,312.");
+    expect(r.text).toContain("Pass page 2 for the next page.");
+    const u = seen[seen.length - 1];
+    expect(u.searchParams.get("page")).toBeNull();
+    expect(u.searchParams.get("per_page")).toBe("2");
+  });
+  it("asks for a later page and says which results are on it", async () => {
+    const r = await call("search_papers", { query: "spaced repetition", limit: 2, page: 3 });
+    expect(r.text).toContain("Showing 5 to 6 of 4,312.");
+    expect(seen[seen.length - 1].searchParams.get("page")).toBe("3");
+  });
+  it("says when a page is past the last result", async () => {
+    const r = await call("find_related_papers", { paper: "W2", limit: 1, page: 3 });
+    expect(r.isError).toBe(false);
+    expect(r.text).toContain("There are 2 results in all, so page 3 is past the last page.");
+    expect(r.text).toContain("Use a page from 1 to 2.");
+  });
+  it("pages a citing list and an author list", async () => {
+    const citing = await call("find_citing_papers", { paper: "W2", limit: 1, page: 2 });
+    expect(citing.text).toContain("Showing 2 to 2 of 120.");
+    expect(seen[seen.length - 1].searchParams.get("page")).toBe("2");
+    const author = await call("list_author_papers", { author: "A100", limit: 1, page: 2 });
+    expect(author.text).toContain("Showing 2 to 2 of 30.");
+    expect(seen[seen.length - 1].searchParams.get("page")).toBe("2");
+    expect(seen[seen.length - 1].searchParams.get("per_page")).toBe("1");
+  });
+  it("pages a reference list and keeps the reference count in the heading", async () => {
+    const r = await call("paper_references", { paper: "W2", limit: 1, page: 2 });
+    expect(r.text).toContain("(2 in OpenAlex)");
+    expect(r.text).toContain("Showing 2 to 2 of 2.");
+    expect(r.text).toContain("Paper 20");
+    expect(r.text).not.toContain("Paper 21");
+    expect(r.text).not.toContain("Pass page");
   });
   it("shows a one line abstract under each citing paper", async () => {
     const r = await call("find_citing_papers", { paper: "W2", limit: 2 });

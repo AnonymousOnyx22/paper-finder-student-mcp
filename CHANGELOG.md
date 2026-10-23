@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- `search_papers` and the list tools now say how many results matched in all and which results are on screen, in a showing line such as "Showing 1 to 8 of 4,312. Pass page 2 for the next page." Every list takes an optional `page` input, so a literature review can keep reading past the first 25 results instead of starting over. For a search, an author list or a citing list, the page goes to OpenAlex as the `page` request parameter and the total comes from its `meta.count` field, so the numbers are the ones OpenAlex reports. The related and reference lists page over the works OpenAlex already lists for the paper. The tools with the new input are `search_papers`, `find_related_papers`, `find_citing_papers`, `paper_references` and `list_author_papers`, and the deprecated aliases answer the same way. The README tool table, llms.txt and glama.json advertise the new input
+- The `paper_references` heading still states how many references OpenAlex holds for the paper, so that number keeps its meaning, and the new showing line sits beside it
+
 ## 0.1.3
 
 - `search_papers` takes a `title_only` input, so a search can keep only the papers whose title carries the query words. That is the answer to a broad topic where the most cited match is a famous paper that only mentions the topic. The input goes to OpenAlex as a `title.search` filter and the results stay in the OpenAlex relevance order, so the closest match is still first. It is optional and false by default, so saved prompts keep working as they are. A search that finds nothing names it as a filter to relax, and the README tool table, llms.txt and glama.json advertise it

@@ -4,7 +4,7 @@
     "AnonymousOnyx22"
   ],
   "name": "paper-finder-student-mcp",
-  "description": "Academic paper search MCP server. Search scholarly papers, find open access copies and related work through OpenAlex (https://openalex.org), with no key needed. The tools listed below are the ones a client sees, and the old aliases still answer for saved prompts.",
+  "description": "Academic paper search MCP server. Search scholarly papers, page through the results with a total count, find open access copies and related work through OpenAlex (https://openalex.org), with no key needed. The tools listed below are the ones a client sees, and the old aliases still answer for saved prompts.",
   "repository": {
     "url": "https://github.com/AnonymousOnyx22/paper-finder-student-mcp",
     "source": "github"
@@ -15,8 +15,8 @@
   "tools": [
     {
       "name": "search_papers",
-      "description": "Search scholarly papers by keywords. Returns title, authors, year, venue, citation count, DOI, a one line abstract and a free to read link when one exists. The results can be ordered, so you can get the most cited papers on a topic or the newest ones, and they can be limited to one kind of paper, to a range of years, to a minimum number of citations or to papers whose title carries the search words. Inputs: query (required keywords), from_year (optional earliest publication year), to_year (optional latest publication year), min_citations (optional, keep only the papers with at least this many citations), open_access_only (optional, false by default), title_only (optional, false by default, keep only the papers whose title carries the search words), type (optional, journal_article, preprint or book_chapter), sort (optional, relevance for the OpenAlex order, cited_by_count:desc for the most cited papers first, or publication_date:desc for the newest papers first), limit (optional, 1 to 25, default 8). Example prompt: 'find the most cited papers on spaced repetition since 2020.'",
-      "parameters": ["query", "from_year", "to_year", "min_citations", "open_access_only", "title_only", "type", "sort", "limit"]
+      "description": "Search scholarly papers by keywords. Returns title, authors, year, venue, citation count, DOI, a one line abstract and a free to read link when one exists. A showing line under the heading says which results are on this page and how many matched in all, with the page to ask for next, so a long list can be read a page at a time. The results can be ordered, so you can get the most cited papers on a topic or the newest ones, and they can be limited to one kind of paper, to a range of years, to a minimum number of citations or to papers whose title carries the search words. Inputs: query (required keywords), from_year (optional earliest publication year), to_year (optional latest publication year), min_citations (optional, keep only the papers with at least this many citations), open_access_only (optional, false by default), title_only (optional, false by default, keep only the papers whose title carries the search words), type (optional, journal_article, preprint or book_chapter), sort (optional, relevance for the OpenAlex order, cited_by_count:desc for the most cited papers first, or publication_date:desc for the newest papers first), page (optional, which page of results to show, 1 to 400, 1 by default), limit (optional, 1 to 25, default 8). Example prompt: 'find the most cited papers on spaced repetition since 2020.'",
+      "parameters": ["query", "from_year", "to_year", "min_citations", "open_access_only", "title_only", "type", "sort", "page", "limit"]
     },
     {
       "name": "get_paper",
@@ -30,23 +30,23 @@
     },
     {
       "name": "find_related_papers",
-      "description": "Lists the papers that OpenAlex lists as related to a given paper, so you can find more work on the same topic. Every result carries a one line abstract, so you can judge a paper before you open it. Inputs: paper (required, a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807), limit (optional, 1 to 25, default 8). Example prompt: 'what papers are related to DOI 10.48550/arXiv.1706.03762?'",
-      "parameters": ["paper", "limit"]
+      "description": "Lists the papers that OpenAlex lists as related to a given paper, so you can find more work on the same topic. Every result carries a one line abstract, so you can judge a paper before you open it. A showing line under the heading says which results are on this page and how many related papers there are in all, with the page to ask for next. Inputs: paper (required, a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807), page (optional, which page of results to show, 1 to 400, 1 by default), limit (optional, 1 to 25, default 8). Example prompt: 'what papers are related to DOI 10.48550/arXiv.1706.03762?'",
+      "parameters": ["paper", "page", "limit"]
     },
     {
       "name": "find_citing_papers",
-      "description": "Lists the papers that cite a given paper, newest first. Every result carries a one line abstract, so you can judge a paper before you open it. This is the other half of the citation graph that paper_references covers, so a literature review can walk the graph in both directions. Inputs: paper (required, a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807), limit (optional, 1 to 25, default 8). Example prompt: 'who cited DOI 10.48550/arXiv.1706.03762?'",
-      "parameters": ["paper", "limit"]
+      "description": "Lists the papers that cite a given paper, newest first. Every result carries a one line abstract, so you can judge a paper before you open it. This is the other half of the citation graph that paper_references covers, so a literature review can walk the graph in both directions. A showing line under the heading says which citing papers are on this page and how many there are in all, with the page to ask for next. Inputs: paper (required, a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807), page (optional, which page of results to show, 1 to 400, 1 by default), limit (optional, 1 to 25, default 8). Example prompt: 'who cited DOI 10.48550/arXiv.1706.03762?'",
+      "parameters": ["paper", "page", "limit"]
     },
     {
       "name": "paper_references",
-      "description": "The papers that one paper cites, which is the other half of the citation graph that find_citing_papers covers. Every result carries a one line abstract, so you can judge a paper before you open it. Use it to read the bibliography of a paper, to find the source a result came from, or to work backwards from a paper to the earlier work it builds on. Inputs: paper (required, a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807), sort (optional, cited_by_count:desc for the most cited references first, or publication_year:asc for the oldest references first), limit (optional, 1 to 25, default 8). Example prompt: 'what papers does DOI 10.1038/nature14539 cite?'",
-      "parameters": ["paper", "sort", "limit"]
+      "description": "The papers that one paper cites, which is the other half of the citation graph that find_citing_papers covers. Every result carries a one line abstract, so you can judge a paper before you open it. Use it to read the bibliography of a paper, to find the source a result came from, or to work backwards from a paper to the earlier work it builds on. A showing line says which references are on this page and how many the paper lists in all, with the page to ask for next. Inputs: paper (required, a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807), sort (optional, cited_by_count:desc for the most cited references first, or publication_year:asc for the oldest references first), page (optional, which page of results to show, 1 to 400, 1 by default), limit (optional, 1 to 25, default 8). Example prompt: 'what papers does DOI 10.1038/nature14539 cite?'",
+      "parameters": ["paper", "sort", "page", "limit"]
     },
     {
       "name": "list_author_papers",
-      "description": "Papers by one author, most cited first. The name is looked up in the OpenAlex author records first, so initials, a different order of the name parts and other spellings of the same person still find the papers, and the papers are then taken from that author id. When OpenAlex has no record for the name, the papers are matched by the name as it is written on them. Inputs: author (required, the author name, for example Jane Doe, or an OpenAlex author id like A5108843829), from_year (optional earliest publication year), open_access_only (optional, false by default), limit (optional, 1 to 25, default 8). Example prompt: 'list papers by John Dewey on education since 1950.'",
-      "parameters": ["author", "from_year", "open_access_only", "limit"]
+      "description": "Papers by one author, most cited first. The name is looked up in the OpenAlex author records first, so initials, a different order of the name parts and other spellings of the same person still find the papers, and the papers are then taken from that author id. When OpenAlex has no record for the name, the papers are matched by the name as it is written on them. A showing line says which papers are on this page and how many matched in all, with the page to ask for next. Inputs: author (required, the author name, for example Jane Doe, or an OpenAlex author id like A5108843829), from_year (optional earliest publication year), open_access_only (optional, false by default), page (optional, which page of results to show, 1 to 400, 1 by default), limit (optional, 1 to 25, default 8). Example prompt: 'list papers by John Dewey on education since 1950.'",
+      "parameters": ["author", "from_year", "open_access_only", "page", "limit"]
     }
   ]
 }

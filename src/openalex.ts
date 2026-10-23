@@ -18,6 +18,12 @@ export interface Work {
   type?: string;
 }
 
+/** One page of works, with how many works the query matched in all. */
+export interface WorkPage {
+  works: Work[];
+  total: number;
+}
+
 const FIELDS = "id,doi,display_name,publication_year,cited_by_count,authorships,primary_location,open_access,type";
 const FULL_FIELDS = FIELDS + ",abstract_inverted_index,related_works,best_oa_location";
 /** The fields for a list of papers where every entry shows a one line abstract. */
@@ -127,6 +133,17 @@ function params(api: OpenAlex, extra: Record<string, string | number | undefined
   return { ...extra, ...(api.email ? { mailto: api.email } : {}) };
 }
 
+/** The OpenAlex page and per_page for a 1 based page number, so page 1 keeps the current request. */
+function pageParams(page: number | undefined, limit: number): { page?: number; per_page: number } {
+  return { page: page && page > 1 ? page : undefined, per_page: limit };
+}
+
+/** The works on one page of a result, plus the total the API reports. */
+function workPage(res: any, limit: number): WorkPage {
+  const works: Work[] = res.results ?? [];
+  return { works: works.slice(0, limit), total: res.meta?.count ?? works.length };
+}
+
 /** The message for an OpenAlex failure that is not the caller's fault. */
 function upstreamMessage(err: ApiError): string {
   if (err.kind === "timeout") return `OpenAlex did not answer (${err.message}). Try again shortly.`;
@@ -179,8 +196,9 @@ export async function search(
     type?: string;
     titleOnly?: boolean;
     limit: number;
+    page?: number;
   },
-): Promise<Work[]> {
+): Promise<WorkPage> {
   const filters: string[] = [];
   if (opts.fromYear) filters.push(`from_publication_date:${opts.fromYear}-01-01`);
   if (opts.toYear) filters.push(`to_publication_date:${opts.toYear}-12-31`);
@@ -197,11 +215,11 @@ export async function search(
       search: query,
       filter: filters.join(",") || undefined,
       sort: opts.sort,
-      per_page: opts.limit,
+      ...pageParams(opts.page, opts.limit),
       select: LIST_FIELDS,
     }),
   );
-  return res.results ?? [];
+  return workPage(res, opts.limit);
 }
 
 export async function getWork(api: OpenAlex, ref: string, fields: string = FULL_FIELDS): Promise<Work> {
@@ -211,26 +229,34 @@ export async function getWork(api: OpenAlex, ref: string, fields: string = FULL_
 export async function authorPapers(
   api: OpenAlex,
   author: string,
-  opts: { fromYear?: number; openAccessOnly?: boolean; limit: number },
-): Promise<Work[]> {
+  opts: { fromYear?: number; openAccessOnly?: boolean; limit: number; page?: number },
+): Promise<WorkPage> {
   const filters = [`raw_author_name.search:${author}`];
   if (opts.fromYear) filters.push(`from_publication_date:${opts.fromYear}-01-01`);
   if (opts.openAccessOnly) filters.push("is_oa:true");
-  const res: any = await getJson<any>(api, "/works", params(api, { filter: filters.join(","), sort: "cited_by_count:desc", per_page: opts.limit, select: FIELDS }));
-  return res.results ?? [];
+  const res: any = await getJson<any>(
+    api,
+    "/works",
+    params(api, { filter: filters.join(","), sort: "cited_by_count:desc", ...pageParams(opts.page, opts.limit), select: FIELDS }),
+  );
+  return workPage(res, opts.limit);
 }
 
 /** Papers that belong to one OpenAlex author id, whatever name is written on the papers. */
 export async function authorIdPapers(
   api: OpenAlex,
   authorId: string,
-  opts: { fromYear?: number; openAccessOnly?: boolean; limit: number },
-): Promise<Work[]> {
+  opts: { fromYear?: number; openAccessOnly?: boolean; limit: number; page?: number },
+): Promise<WorkPage> {
   const filters = [`author.id:${authorId}`];
   if (opts.fromYear) filters.push(`from_publication_date:${opts.fromYear}-01-01`);
   if (opts.openAccessOnly) filters.push("is_oa:true");
-  const res: any = await getJson<any>(api, "/works", params(api, { filter: filters.join(","), sort: "cited_by_count:desc", per_page: opts.limit, select: FIELDS }));
-  return res.results ?? [];
+  const res: any = await getJson<any>(
+    api,
+    "/works",
+    params(api, { filter: filters.join(","), sort: "cited_by_count:desc", ...pageParams(opts.page, opts.limit), select: FIELDS }),
+  );
+  return workPage(res, opts.limit);
 }
 
 const AUTHOR_FIELDS = "id,display_name,works_count,cited_by_count,display_name_alternatives";
@@ -380,18 +406,34 @@ export async function resolveAuthor(api: OpenAlex, name: string): Promise<Resolv
   return null;
 }
 
-export async function related(api: OpenAlex, ref: string, limit: number): Promise<{ base: Work; works: Work[] }> {
+export async function related(
+  api: OpenAlex,
+  ref: string,
+  limit: number,
+  page = 1,
+): Promise<{ base: Work; works: Work[]; total: number }> {
   const base = await getWork(api, ref);
-  const ids = (base.related_works ?? []).slice(0, limit).map(shortId);
-  if (ids.length === 0) return { base, works: [] };
-  const res: any = await getJson<any>(api, "/works", params(api, { filter: `openalex:${ids.join("|")}`, per_page: limit, select: LIST_FIELDS }));
-  return { base, works: res.results ?? [] };
+  const all = (base.related_works ?? []).map(shortId);
+  const ids = all.slice((page - 1) * limit, page * limit);
+  if (ids.length === 0) return { base, works: [], total: all.length };
+  const res: any = await getJson<any>(api, "/works", params(api, { filter: `openalex:${ids.join("|")}`, per_page: ids.length, select: LIST_FIELDS }));
+  return { base, works: res.results ?? [], total: all.length };
 }
 
-export async function citedBy(api: OpenAlex, ref: string, limit: number): Promise<{ base: Work; works: Work[] }> {
+export async function citedBy(
+  api: OpenAlex,
+  ref: string,
+  limit: number,
+  page = 1,
+): Promise<{ base: Work; works: Work[]; total: number }> {
   const base = await getWork(api, ref);
-  const res: any = await getJson<any>(api, "/works", params(api, { filter: `cites:${shortId(base.id)}`, sort: "publication_date:desc", per_page: limit, select: LIST_FIELDS }));
-  return { base, works: res.results ?? [] };
+  const res: any = await getJson<any>(
+    api,
+    "/works",
+    params(api, { filter: `cites:${shortId(base.id)}`, sort: "publication_date:desc", ...pageParams(page, limit), select: LIST_FIELDS }),
+  );
+  const { works, total } = workPage(res, limit);
+  return { base, works, total };
 }
 
 /** How many ids go into one filter list, so a long reference list is asked for in parts. */
@@ -421,11 +463,14 @@ export async function references(
   ref: string,
   limit: number,
   sort: string,
+  page = 1,
 ): Promise<{ base: Work; works: Work[]; total: number }> {
   const base = await getWork(api, ref, REFERENCES_FIELDS);
   const ids = (base.referenced_works ?? []).map(shortId);
   if (ids.length === 0) return { base, works: [], total: 0 };
   const apiSort = REFERENCE_SORTS[sort] ?? "cited_by_count:desc";
+  // Enough of every part to fill the page, so the best ones of the whole list are picked out.
+  const perPart = Math.min(page * limit, ID_CHUNK);
   const chunks: string[][] = [];
   for (let i = 0; i < ids.length; i += ID_CHUNK) chunks.push(ids.slice(i, i + ID_CHUNK));
   const pages: any[] = [];
@@ -433,12 +478,12 @@ export async function references(
     const group = chunks.slice(i, i + ID_PARALLEL);
     const res = await Promise.all(
       group.map((chunk) =>
-        getJson<any>(api, "/works", params(api, { filter: `openalex:${chunk.join("|")}`, sort: apiSort, per_page: limit, select: LIST_FIELDS })),
+        getJson<any>(api, "/works", params(api, { filter: `openalex:${chunk.join("|")}`, sort: apiSort, per_page: perPart, select: LIST_FIELDS })),
       ),
     );
     pages.push(...res);
   }
-  const works = pages.flatMap((page) => page?.results ?? []);
+  const works = pages.flatMap((p) => p?.results ?? []);
   works.sort((a: Work, b: Work) => compareWorks(a, b, sort));
-  return { base, works: works.slice(0, limit), total: ids.length };
+  return { base, works: works.slice((page - 1) * limit, page * limit), total: ids.length };
 }

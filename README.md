@@ -8,6 +8,8 @@ Paper Finder MCP is an academic paper search MCP server. Ask your AI to find rea
 
 Sort by citation count to get the most cited papers on a topic, or by date to get the newest ones. Ask for the papers a paper cites, or the papers that cite it, when you build a literature review.
 
+A search that matches thousands of papers says how many there are and which results you are reading, so you can keep going with the next page instead of stopping at the first handful. The author, citing, related and reference lists work the same way.
+
 Results come straight from [OpenAlex](https://openalex.org), a free open catalog of scholarly works, so the papers are real, not invented. Free forever, no account and no key.
 
 Students often type things like 'find 5 sources for my essay on spaced repetition' or 'citations for my literature review'.
@@ -79,6 +81,7 @@ This is what `search_papers` returns for the query "spaced repetition" when you 
 
 ```text
 Papers about "spaced repetition", most cited first
+Showing 1 to 3 of 12,408. Pass page 2 for the next page.
 
 1. Spaced Repetition Promotes Efficient and Effective Learning (2016)
   Sean H. K. Kang, Policy Insights from the Behavioral and Brain Sciences
@@ -99,7 +102,7 @@ Papers about "spaced repetition", most cited first
   Abstract: Spaced repetition is a technique for efficient memorization which uses repeated review of content following a schedule determined by a spaced repetition algorithm to improve long-term retention.
 ```
 
-Each result carries the title, the authors, the year, the venue, the citation count, the DOI, the OpenAlex id, a free to read link when one exists and the first line of the abstract, so you can judge a paper before you open it.
+Each result carries the title, the authors, the year, the venue, the citation count, the DOI, the OpenAlex id, a free to read link when one exists and the first line of the abstract, so you can judge a paper before you open it. The showing line says which results you are reading and how many matched in all, and the page to ask for next. OpenAlex counts change over time, so the totals in this sample will differ when you run it.
 
 ## Example prompts
 
@@ -137,15 +140,15 @@ Paper Finder MCP is the one where every line has a live catalog record behind it
 
 | Tool | What it does | Parameters |
 | --- | --- | --- |
-| `search_papers` | Search scholarly works by keywords, with optional year range, citation count, open access, title matches, type and order settings | `query`, `from_year`, `to_year`, `min_citations`, `open_access_only`, `title_only`, `type`, `sort`, `limit` |
+| `search_papers` | Search scholarly works by keywords, with optional year range, citation count, open access, title matches, type and order settings | `query`, `from_year`, `to_year`, `min_citations`, `open_access_only`, `title_only`, `type`, `sort`, `page`, `limit` |
 | `get_paper` | Details for one paper from its DOI, doi.org link or OpenAlex id, including the abstract | `paper`, `doi` |
 | `find_open_access_pdf` | The free to read copy of one paper, preferring a PDF link, or a plain note that none exists | `paper` |
-| `find_related_papers` | Papers OpenAlex marks as related to a paper | `paper`, `limit` |
-| `find_citing_papers` | Newer papers that cite a paper, most recent first | `paper`, `limit` |
-| `paper_references` | The papers a paper cites, so you can read its bibliography | `paper`, `sort`, `limit` |
-| `list_author_papers` | Papers by one author, most cited first, with the name looked up in the OpenAlex author records | `author`, `from_year`, `open_access_only`, `limit` |
+| `find_related_papers` | Papers OpenAlex marks as related to a paper | `paper`, `page`, `limit` |
+| `find_citing_papers` | Newer papers that cite a paper, most recent first | `paper`, `page`, `limit` |
+| `paper_references` | The papers a paper cites, so you can read its bibliography | `paper`, `sort`, `page`, `limit` |
+| `list_author_papers` | Papers by one author, most cited first, with the name looked up in the OpenAlex author records | `author`, `from_year`, `open_access_only`, `page`, `limit` |
 
-Every tool description states its inputs and one example prompt, so clients can pick the right tool without reading this page. `paper` accepts a DOI like `10.1038/nature14539`, a doi.org link, or an OpenAlex id like `W2741809807`. `doi` accepts a DOI or doi.org link with no OpenAlex ids, and `get_paper` takes either `paper` or `doi`, so a DOI lookup has one home. `limit` is 1 to 25, default 8. `search_papers` shows the title, authors, year, venue, citations, DOI and a one line abstract for every hit, so you can judge a paper before you open it. `sort` takes `relevance` (the default OpenAlex order), `cited_by_count:desc` for the most cited papers on the topic first, or `publication_date:desc` for the newest papers first. `type` takes `journal_article`, `preprint` or `book_chapter` to keep the results to one kind of paper. `title_only` keeps only the papers whose title carries the search words, which stops a famous paper that only mentions the topic from taking the top spot on a broad search. `from_year` and `to_year` set the two ends of a range of years, so a search can ask for the papers published from 2015 to 2020, and `min_citations` keeps only the papers with at least that many citations, so a search can ask for the well cited papers on a topic. `list_author_papers` looks the name up in the OpenAlex author records first and then takes the papers from that author id, so `J. Smith`, `Smith, John` and `John Smith` all reach the same papers, even when the name on the paper is written differently. When the name cannot be resolved that way, the tool matches the name as it is written on the papers instead. `find_citing_papers` gives the papers that cite a paper, and `paper_references` gives the papers it cites, so a literature review can walk the citation graph in both directions. Those two lists and the related paper list show the same one line abstract under every entry, so a paper can be judged from the list before it is opened. `paper_references` takes its own `sort`, with `cited_by_count:desc` for the most cited references first and `publication_year:asc` for the oldest references first, which reads like a bibliography from the beginning. The heading says how many references OpenAlex holds for the paper, so a list cut short by `limit` is clear.
+Every tool description states its inputs and one example prompt, so clients can pick the right tool without reading this page. `paper` accepts a DOI like `10.1038/nature14539`, a doi.org link, or an OpenAlex id like `W2741809807`. `doi` accepts a DOI or doi.org link with no OpenAlex ids, and `get_paper` takes either `paper` or `doi`, so a DOI lookup has one home. `limit` is 1 to 25, default 8 and `page` is 1 to 400, default 1. `search_papers` shows the title, authors, year, venue, citations, DOI and a one line abstract for every hit, so you can judge a paper before you open it. `sort` takes `relevance` (the default OpenAlex order), `cited_by_count:desc` for the most cited papers on the topic first, or `publication_date:desc` for the newest papers first. `type` takes `journal_article`, `preprint` or `book_chapter` to keep the results to one kind of paper. `title_only` keeps only the papers whose title carries the search words, which stops a famous paper that only mentions the topic from taking the top spot on a broad search. `from_year` and `to_year` set the two ends of a range of years, so a search can ask for the papers published from 2015 to 2020, and `min_citations` keeps only the papers with at least that many citations, so a search can ask for the well cited papers on a topic. `list_author_papers` looks the name up in the OpenAlex author records first and then takes the papers from that author id, so `J. Smith`, `Smith, John` and `John Smith` all reach the same papers, even when the name on the paper is written differently. When the name cannot be resolved that way, the tool matches the name as it is written on the papers instead. `find_citing_papers` gives the papers that cite a paper, and `paper_references` gives the papers it cites, so a literature review can walk the citation graph in both directions. Those two lists and the related paper list show the same one line abstract under every entry, so a paper can be judged from the list before it is opened. `paper_references` takes its own `sort`, with `cited_by_count:desc` for the most cited references first and `publication_year:asc` for the oldest references first, which reads like a bibliography from the beginning. The heading says how many references OpenAlex holds for the paper, so a list cut short by `limit` is clear. Every search and every one of those lists comes with a showing line that says which results are on this page and how many matched in all, and names the page to ask for next, so a long list can be read a page at a time with `page`.
 
 `cited_by`, `related_papers`, `get_paper_by_doi` and `get_related_work` still exist as deprecated aliases so saved prompts keep working. They do the same work as `find_citing_papers`, `find_related_papers` and `get_paper` with `doi`, and new prompts should use those instead. They are not in the tool list a client sees, so a client gets the tools above and no second name for them. A saved prompt that calls one of the old names still gets an answer.
 

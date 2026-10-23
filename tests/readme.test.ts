@@ -99,6 +99,8 @@ describe("README output block", () => {
     const header = text.split("\n")[0];
     expect(header).toBe('Papers about "spaced repetition", most cited first');
     expect(block.startsWith(header)).toBe(true);
+    expect(block.split("\n")[1]).toMatch(/^Showing \d+ to \d+ of [\d,]+\./);
+    expect(text.split("\n")[1]).toBe("Showing 1 to 1 of 1.");
   });
 
   it("shows every field the tool prints for a search result", () => {
