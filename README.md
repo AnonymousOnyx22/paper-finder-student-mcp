@@ -4,6 +4,8 @@
 [![downloads](https://img.shields.io/npm/dm/paper-finder-student-mcp.svg)](https://www.npmjs.com/package/paper-finder-student-mcp)
 [![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
+**Google Scholar for your AI**. [See how it compares](#how-it-compares).
+
 Paper Finder MCP is an academic paper search MCP server. Ask your AI to find real scholarly papers for an essay or research project, with authors, year, citation counts, DOIs, a one line abstract and a free to read link when one exists.
 
 Sort by citation count to get the most cited papers on a topic, or by date to get the newest ones. Ask for the papers a paper cites, or the papers that cite it, when you build a literature review.
