@@ -252,6 +252,39 @@ describe("MCP tools", () => {
       "from_publication_date:2021-01-01,is_oa:true,type:article",
     );
   });
+  it("keeps only the papers with the search words in the title", async () => {
+    const r = await call("search_papers", { query: "spaced repetition", title_only: true, limit: 2 });
+    expect(r.isError).toBe(false);
+    expect(r.text).toContain("title matches only");
+    const u = seen[seen.length - 1];
+    expect(u.searchParams.get("filter")).toBe("title.search:spaced repetition");
+    expect(u.searchParams.get("search")).toBe("spaced repetition");
+  });
+  it("leaves the title filter out unless it is asked for", async () => {
+    await call("search_papers", { query: "spaced repetition", limit: 2 });
+    expect(seen[seen.length - 1].searchParams.get("filter")).toBeNull();
+    await call("search_papers", { query: "spaced, repetition", title_only: true, limit: 2 });
+    expect(seen[seen.length - 1].searchParams.get("filter")).toBe("title.search:spaced repetition");
+  });
+  it("keeps the title filter beside the other filters", async () => {
+    await call("search_papers", {
+      query: "spaced repetition",
+      from_year: 2015,
+      min_citations: 50,
+      open_access_only: true,
+      type: "journal_article",
+      title_only: true,
+      limit: 2,
+    });
+    expect(seen[seen.length - 1].searchParams.get("filter")).toBe(
+      "from_publication_date:2015-01-01,cited_by_count:>49,is_oa:true,type:article,title.search:spaced repetition",
+    );
+  });
+  it("names the title filter when nothing matches", async () => {
+    const r = await call("search_papers", { query: "nothing", title_only: true });
+    expect(r.isError).toBe(false);
+    expect(r.text).toContain("title_only");
+  });
   it("keeps the results inside a range of years", async () => {
     const r = await call("search_papers", { query: "spaced repetition", from_year: 2015, to_year: 2020, limit: 2 });
     expect(r.isError).toBe(false);

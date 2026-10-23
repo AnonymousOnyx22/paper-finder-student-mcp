@@ -29,6 +29,10 @@ const minCitations = z
   .optional()
   .describe("Only papers with at least this many citations.");
 const openAccessOnly = z.boolean().default(false).describe("Only papers with a free to read copy.");
+const titleOnly = z
+  .boolean()
+  .default(false)
+  .describe("Only papers with the search words in the title, not just somewhere in the paper.");
 const ref = z.string().min(1).describe("A DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807.");
 const doi = z.string().min(2).describe("A DOI like 10.1038/nature14539, or a doi.org link. No OpenAlex ids here.");
 
@@ -119,13 +123,14 @@ export const tools: ToolDef<OpenAlex>[] = [
     name: "search_papers",
     title: "Search papers",
     description:
-      "Search scholarly papers by keywords. Returns title, authors, year, venue, citation count, DOI, a one line abstract and a free to read link when one exists. The results can be ordered, so you can get the most cited papers on a topic or the newest ones, and they can be limited to one kind of paper, to a range of years or to a minimum number of citations. Inputs: query (required keywords), from_year (optional earliest publication year), to_year (optional latest publication year), min_citations (optional, keep only the papers with at least this many citations), open_access_only (optional, false by default), type (optional, journal_article, preprint or book_chapter), sort (optional, relevance for the OpenAlex order, cited_by_count:desc for the most cited papers first, or publication_date:desc for the newest papers first), limit (optional, 1 to 25, default 8). Example prompt: 'find the most cited papers on spaced repetition since 2020.'",
+      "Search scholarly papers by keywords. Returns title, authors, year, venue, citation count, DOI, a one line abstract and a free to read link when one exists. The results can be ordered, so you can get the most cited papers on a topic or the newest ones, and they can be limited to one kind of paper, to a range of years, to a minimum number of citations or to papers whose title carries the search words. Inputs: query (required keywords), from_year (optional earliest publication year), to_year (optional latest publication year), min_citations (optional, keep only the papers with at least this many citations), open_access_only (optional, false by default), title_only (optional, false by default, keep only the papers whose title carries the search words), type (optional, journal_article, preprint or book_chapter), sort (optional, relevance for the OpenAlex order, cited_by_count:desc for the most cited papers first, or publication_date:desc for the newest papers first), limit (optional, 1 to 25, default 8). Example prompt: 'find the most cited papers on spaced repetition since 2020.'",
     inputSchema: {
       query: z.string().min(2).describe("Keywords, for example: spaced repetition exam performance."),
       from_year: fromYear,
       to_year: toYear,
       min_citations: minCitations,
       open_access_only: openAccessOnly,
+      title_only: titleOnly,
       type: z
         .enum(["journal_article", "preprint", "book_chapter"])
         .optional()
@@ -149,6 +154,7 @@ export const tools: ToolDef<OpenAlex>[] = [
         openAccessOnly: a.open_access_only,
         sort: SEARCH_SORTS[a.sort ?? "relevance"],
         type: WORK_TYPES[a.type ?? ""],
+        titleOnly: a.title_only,
         limit: a.limit,
       });
       if (works.length === 0) {
@@ -159,10 +165,12 @@ export const tools: ToolDef<OpenAlex>[] = [
         if (a.min_citations !== undefined)
           fixes.push(`Lower min_citations, nothing matched with ${a.min_citations} citations or more.`);
         if (a.type) fixes.push(`Drop the type filter, no ${TYPE_LABELS[a.type]} matched.`);
+        if (a.title_only) fixes.push("Set title_only to false, some papers mention the topic in the abstract rather than the title.");
         return `No papers found for "${a.query}". ${fixes.join(" ")}`;
       }
       const head = [`Papers about "${a.query}"`];
       if (a.type) head.push(`${TYPE_LABELS[a.type]} only`);
+      if (a.title_only) head.push("title matches only");
       if (a.to_year !== undefined)
         head.push(a.from_year !== undefined ? `published ${a.from_year} to ${a.to_year}` : `published up to ${a.to_year}`);
       if (a.min_citations !== undefined) head.push(`at least ${a.min_citations} citations`);

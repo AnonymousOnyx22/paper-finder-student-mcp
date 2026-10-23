@@ -177,6 +177,7 @@ export async function search(
     openAccessOnly?: boolean;
     sort?: string;
     type?: string;
+    titleOnly?: boolean;
     limit: number;
   },
 ): Promise<Work[]> {
@@ -187,6 +188,8 @@ export async function search(
   if (opts.minCitations !== undefined) filters.push(`cited_by_count:>${opts.minCitations - 1}`);
   if (opts.openAccessOnly) filters.push("is_oa:true");
   if (opts.type) filters.push(`type:${opts.type}`);
+  // A comma or a pipe would break OpenAlex filter syntax, so the title search uses plain words.
+  if (opts.titleOnly) filters.push(`title.search:${query.replace(/[,|]+/g, " ").replace(/\s+/g, " ").trim()}`);
   const res: any = await getJson<any>(
     api,
     "/works",
