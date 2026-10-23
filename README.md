@@ -14,6 +14,10 @@ Students often type things like 'find 5 sources for my essay on spaced repetitio
 
 ## Install
 
+[![Install in Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](cursor://anysphere.cursor-deeplink/mcp/install?name=paper-finder&config=eyJ0eXBlIjoic3RkaW8iLCJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsInBhcGVyLWZpbmRlci1zdHVkZW50LW1jcCJdfQ==) [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_Server-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white)](vscode:mcp/install?%7B%22name%22%3A%22paper-finder%22%2C%22type%22%3A%22stdio%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22paper-finder-student-mcp%22%5D%7D)
+
+Click a button to add the server to Cursor or VS Code, or set it up by hand with the config below.
+
 ```bash
 npx -y paper-finder-student-mcp
 ```
