@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- When OpenAlex or Open Library answers with a rate limit, a server error or a dropped connection, the request is tried once more after a short pause, so a brief outage no longer ends the search with an error.
+
 ## 0.1.4
 
 - `search_papers` and the list tools now say how many results matched in all and which results are on screen, in a showing line such as "Showing 1 to 8 of 4,312. Pass page 2 for the next page." Every list takes an optional `page` input, so a literature review can keep reading past the first 25 results instead of starting over. For a search, an author list or a citing list, the page goes to OpenAlex as the `page` request parameter and the total comes from its `meta.count` field, so the numbers are the ones OpenAlex reports. The related and reference lists page over the works OpenAlex already lists for the paper. The tools with the new input are `search_papers`, `find_related_papers`, `find_citing_papers`, `paper_references` and `list_author_papers`, and the deprecated aliases answer the same way. The README tool table, llms.txt and glama.json advertise the new input
