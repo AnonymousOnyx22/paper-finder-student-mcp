@@ -20,6 +20,8 @@ export interface ClientOptions {
   /** Query params added to every request (used by APIs that put the token in the URL). */
   defaultQuery?: Record<string, string>;
   timeoutMs?: number;
+  /** Milliseconds to wait before the one retry. Doubles for each further try when this is raised. */
+  retryDelayMs?: number;
   fetchImpl?: typeof fetch;
 }
 
@@ -54,11 +56,26 @@ function nextLink(header: string | null): string | null {
   return null;
 }
 
+/** How many times one request is tried. A single retry hides a brief blip without a long wait. */
+const MAX_ATTEMPTS = 2;
+
+/** The failures a second try can hide: a rate limit, a server error or a dropped connection. */
+function isRetryable(err: unknown): boolean {
+  if (!(err instanceof ApiError)) return false;
+  if (err.kind === "network") return true;
+  return err.kind === "http" && (err.status === 429 || err.status >= 500);
+}
+
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
 export function createClient(opts: ClientOptions): HttpClient {
   const doFetch = opts.fetchImpl ?? fetch;
   const timeout = opts.timeoutMs ?? 20000;
+  const retryDelay = opts.retryDelayMs ?? 300;
 
-  async function request(url: string): Promise<Response> {
+  async function attempt(url: string): Promise<Response> {
     const ctrl = new AbortController();
     const timer = setTimeout(() => ctrl.abort(), timeout);
     try {
@@ -79,6 +96,17 @@ export function createClient(opts: ClientOptions): HttpClient {
       throw new ApiError(`Network error: ${(err as Error).message}`, 0, undefined, "network");
     } finally {
       clearTimeout(timer);
+    }
+  }
+
+  async function request(url: string): Promise<Response> {
+    for (let tries = 1; ; tries++) {
+      try {
+        return await attempt(url);
+      } catch (err) {
+        if (tries >= MAX_ATTEMPTS || !isRetryable(err)) throw err;
+        await sleep(retryDelay * 2 ** (tries - 1));
+      }
     }
   }
 
