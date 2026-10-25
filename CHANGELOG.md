@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.5
 
 - When OpenAlex answers with a rate limit, a server error or a dropped connection, the request is tried once more after a short pause, so a brief outage no longer ends the search with an error.
 
