@@ -2,7 +2,7 @@
 
 ## Unreleased
 
-- When OpenAlex or Open Library answers with a rate limit, a server error or a dropped connection, the request is tried once more after a short pause, so a brief outage no longer ends the search with an error.
+- When OpenAlex answers with a rate limit, a server error or a dropped connection, the request is tried once more after a short pause, so a brief outage no longer ends the search with an error.
 
 ## 0.1.4
 
