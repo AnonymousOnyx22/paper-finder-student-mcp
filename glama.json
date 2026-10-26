@@ -45,8 +45,8 @@
     },
     {
       "name": "list_author_papers",
-      "description": "Papers by one author, most cited first. The name is looked up in the OpenAlex author records first, so initials, a different order of the name parts and other spellings of the same person still find the papers, and the papers are then taken from that author id. When OpenAlex has no record for the name, the papers are matched by the name as it is written on them. A showing line says which papers are on this page and how many matched in all, with the page to ask for next. Inputs: author (required, the author name, for example Jane Doe, or an OpenAlex author id like A5108843829), from_year (optional earliest publication year), open_access_only (optional, false by default), page (optional, which page of results to show, 1 to 400, 1 by default), limit (optional, 1 to 25, default 8). Example prompt: 'list papers by John Dewey on education since 1950.'",
-      "parameters": ["author", "from_year", "open_access_only", "page", "limit"]
+      "description": "Papers by one author, most cited first. The name is looked up in the OpenAlex author records first, so initials, a different order of the name parts and other spellings of the same person still find the papers, and the papers are then taken from that author id. When OpenAlex has no record for the name, the papers are matched by the name as it is written on them. A showing line says which papers are on this page and how many matched in all, with the page to ask for next. Inputs: author (required, the author name, for example Jane Doe, or an OpenAlex author id like A5108843829), from_year (optional earliest publication year), to_year (optional latest publication year), min_citations (optional, keep only the papers with at least this many citations), open_access_only (optional, false by default), page (optional, which page of results to show, 1 to 400, 1 by default), limit (optional, 1 to 25, default 8). Example prompt: 'list papers by John Dewey on education since 1950.'",
+      "parameters": ["author", "from_year", "to_year", "min_citations", "open_access_only", "page", "limit"]
     }
   ]
 }

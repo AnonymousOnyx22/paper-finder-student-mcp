@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- `list_author_papers` takes the optional `to_year` and `min_citations` filters, the same as `search_papers`, so one call can ask for an author's papers since 2015 with at least 50 citations.
+
 ## 0.1.5
 
 - When OpenAlex answers with a rate limit, a server error or a dropped connection, the request is tried once more after a short pause, so a brief outage no longer ends the search with an error.

@@ -441,6 +441,15 @@ describe("MCP tools", () => {
     expect(u.searchParams.get("mailto")).toBe("me@example.com");
     expect(seen.some((s) => s.pathname === "/authors" && s.searchParams.get("search") === "Ada Lovelace")).toBe(true);
   });
+  it("passes to_year and min_citations to the author filter", async () => {
+    const r = await call("list_author_papers", { author: "A200", from_year: 2015, to_year: 2020, min_citations: 50 });
+    expect(r.isError).toBe(false);
+    expect(seen[seen.length - 1].searchParams.get("filter")).toBe(
+      "author.id:A200,from_publication_date:2015-01-01,to_publication_date:2020-12-31,cited_by_count:>49",
+    );
+    const bad = await call("list_author_papers", { author: "A200", from_year: 2020, to_year: 2015 });
+    expect(bad.code).toBe("invalid_range");
+  });
   it("lists the other OpenAlex profiles that carry the same name", async () => {
     const r = await call("list_author_papers", { author: "Ada Lovelace" });
     expect(r.text).toContain("Other OpenAlex profiles with this name: A101 (3 papers).");

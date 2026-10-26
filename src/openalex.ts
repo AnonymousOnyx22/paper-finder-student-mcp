@@ -226,14 +226,20 @@ export async function getWork(api: OpenAlex, ref: string, fields: string = FULL_
   return getJson<Work>(api, `/works/${normalizeRef(ref)}`, params(api, { select: fields }), ref);
 }
 
-export async function authorPapers(
-  api: OpenAlex,
-  author: string,
-  opts: { fromYear?: number; openAccessOnly?: boolean; limit: number; page?: number },
-): Promise<WorkPage> {
-  const filters = [`raw_author_name.search:${author}`];
+type AuthorOpts = { fromYear?: number; toYear?: number; minCitations?: number; openAccessOnly?: boolean; limit: number; page?: number };
+
+/** The year, citation and open access filters that both author lookups share. */
+function authorFilters(opts: AuthorOpts): string[] {
+  const filters: string[] = [];
   if (opts.fromYear) filters.push(`from_publication_date:${opts.fromYear}-01-01`);
+  if (opts.toYear) filters.push(`to_publication_date:${opts.toYear}-12-31`);
+  if (opts.minCitations !== undefined) filters.push(`cited_by_count:>${opts.minCitations - 1}`);
   if (opts.openAccessOnly) filters.push("is_oa:true");
+  return filters;
+}
+
+export async function authorPapers(api: OpenAlex, author: string, opts: AuthorOpts): Promise<WorkPage> {
+  const filters = [`raw_author_name.search:${author}`, ...authorFilters(opts)];
   const res: any = await getJson<any>(
     api,
     "/works",
@@ -243,14 +249,8 @@ export async function authorPapers(
 }
 
 /** Papers that belong to one OpenAlex author id, whatever name is written on the papers. */
-export async function authorIdPapers(
-  api: OpenAlex,
-  authorId: string,
-  opts: { fromYear?: number; openAccessOnly?: boolean; limit: number; page?: number },
-): Promise<WorkPage> {
-  const filters = [`author.id:${authorId}`];
-  if (opts.fromYear) filters.push(`from_publication_date:${opts.fromYear}-01-01`);
-  if (opts.openAccessOnly) filters.push("is_oa:true");
+export async function authorIdPapers(api: OpenAlex, authorId: string, opts: AuthorOpts): Promise<WorkPage> {
+  const filters = [`author.id:${authorId}`, ...authorFilters(opts)];
   const res: any = await getJson<any>(
     api,
     "/works",

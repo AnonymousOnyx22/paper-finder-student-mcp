@@ -133,7 +133,11 @@ async function citingPapers(a: { paper: string; limit: number; page?: number }, 
   );
 }
 
-function noAuthorMatches(author: string, usedYear?: number, usedOa?: boolean, resolved?: ResolvedAuthor): string {
+function noAuthorMatches(
+  author: string,
+  used: { fromYear?: number; toYear?: number; minCitations?: number; openAccessOnly?: boolean },
+  resolved?: ResolvedAuthor,
+): string {
   const fixes: string[] = [];
   if (resolved) {
     fixes.push(
@@ -143,8 +147,11 @@ function noAuthorMatches(author: string, usedYear?: number, usedOa?: boolean, re
     fixes.push("OpenAlex has no author record under that name, and no paper carries it either.");
     fixes.push("Try the name as it appears on the paper, for example John Smith.");
   }
-  if (usedOa) fixes.push("Set open_access_only to false.");
-  if (usedYear) fixes.push(`Lower from_year, nothing matched from ${usedYear} onwards.`);
+  if (used.openAccessOnly) fixes.push("Set open_access_only to false.");
+  if (used.fromYear) fixes.push(`Lower from_year, nothing matched from ${used.fromYear} onwards.`);
+  if (used.toYear) fixes.push(`Raise to_year, nothing matched up to ${used.toYear}.`);
+  if (used.minCitations !== undefined)
+    fixes.push(`Lower min_citations, nothing matched with ${used.minCitations} citations or more.`);
   const others = resolved ? sameNameNote(resolved) : "";
   return `No papers found for author "${author}". ${fixes.join(" ")}${others ? ` ${others}` : ""}`;
 }
@@ -340,20 +347,27 @@ export const tools: ToolDef<OpenAlex>[] = [
     name: "list_author_papers",
     title: "List papers by an author",
     description:
-      "Papers by one author, most cited first. The name is looked up in the OpenAlex author records first, so initials, a different order of the name parts and other spellings of the same person still find the papers, and the papers are then taken from that author id. When OpenAlex has no record for the name, the papers are matched by the name as it is written on them. A showing line says which papers are on this page and how many matched in all, with the page to ask for next. Inputs: author (required, the author name, for example Jane Doe, or an OpenAlex author id like A5108843829), from_year (optional earliest publication year), open_access_only (optional, false by default), page (optional, which page of results to show, 1 to 400, 1 by default), limit (optional, 1 to 25, default 8). Example prompt: 'list papers by John Dewey on education since 1950.'",
+      "Papers by one author, most cited first. The name is looked up in the OpenAlex author records first, so initials, a different order of the name parts and other spellings of the same person still find the papers, and the papers are then taken from that author id. When OpenAlex has no record for the name, the papers are matched by the name as it is written on them. A showing line says which papers are on this page and how many matched in all, with the page to ask for next. Inputs: author (required, the author name, for example Jane Doe, or an OpenAlex author id like A5108843829), from_year (optional earliest publication year), to_year (optional latest publication year), min_citations (optional, keep only the papers with at least this many citations), open_access_only (optional, false by default), page (optional, which page of results to show, 1 to 400, 1 by default), limit (optional, 1 to 25, default 8). Example prompt: 'list papers by John Dewey on education since 1950.'",
     inputSchema: {
       author: z
         .string()
         .min(2)
         .describe("The author name, for example Jane Doe. Initials and other name forms work. An OpenAlex author id like A5108843829 works too."),
       from_year: fromYear,
+      to_year: toYear,
+      min_citations: minCitations,
       open_access_only: openAccessOnly,
       page,
       limit,
     },
     run: async (a, api) => {
+      if (a.from_year !== undefined && a.to_year !== undefined && a.from_year > a.to_year)
+        throw new ToolError(
+          `from_year ${a.from_year} is after to_year ${a.to_year}. Give a to_year that is the same year as from_year or later.`,
+          "invalid_range",
+        );
       const page = a.page ?? 1;
-      const opts = { fromYear: a.from_year, openAccessOnly: a.open_access_only, limit: a.limit, page };
+      const opts = { fromYear: a.from_year, toYear: a.to_year, minCitations: a.min_citations, openAccessOnly: a.open_access_only, limit: a.limit, page };
       const resolved = await resolveAuthor(api, a.author);
       if (resolved) {
         const { works, total } = await authorIdPapers(api, resolved.profile.id, opts);
@@ -387,7 +401,7 @@ export const tools: ToolDef<OpenAlex>[] = [
       }
       if (total > 0)
         return `OpenAlex lists ${total} papers matching the name "${a.author}", but none of them could be read on page ${page}. Try a lower page or a higher limit.`;
-      return noAuthorMatches(a.author, a.from_year, a.open_access_only, resolved ?? undefined);
+      return noAuthorMatches(a.author, opts, resolved ?? undefined);
     },
   },
 ];
