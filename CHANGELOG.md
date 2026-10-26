@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.6
 
 - `list_author_papers` takes the optional `to_year` and `min_citations` filters, the same as `search_papers`, so one call can ask for an author's papers since 2015 with at least 50 citations.
 

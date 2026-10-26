@@ -6,12 +6,12 @@
     "url": "https://github.com/AnonymousOnyx22/paper-finder-student-mcp",
     "source": "github"
   },
-  "version": "0.1.5",
+  "version": "0.1.6",
   "packages": [
     {
       "registryType": "npm",
       "identifier": "paper-finder-student-mcp",
-      "version": "0.1.5",
+      "version": "0.1.6",
       "transport": {
         "type": "stdio"
       }
