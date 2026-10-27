@@ -456,6 +456,16 @@ describe("MCP tools", () => {
     expect(r.text).toContain("Other OpenAlex profiles with this name: A101 (3 papers).");
     expect(r.text).toContain("Pass one of those ids as author");
   });
+  it("finds candidate authors by name", async () => {
+    const r = await call("find_authors", { name: "Ada Lovelace" });
+    expect(r.text).toContain("1. Ada Lovelace (A100), 12 works, 300 citations");
+    expect(r.text).toContain("2. Ada Lovelace (A101), 3 works, 10 citations");
+  });
+  it("returns a message when no author matches", async () => {
+    const r = await call("find_authors", { name: "Nobody" });
+    expect(r.isError).toBe(false);
+    expect(r.text).toContain('OpenAlex has no author record for "Nobody".');
+  });
   it("takes an OpenAlex author id as it is", async () => {
     const r = await call("list_author_papers", { author: "A200" });
     expect(r.text).toContain('Papers by "John Dewey" (OpenAlex author A200), most cited first');
