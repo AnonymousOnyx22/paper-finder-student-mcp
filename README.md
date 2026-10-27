@@ -120,6 +120,7 @@ Each result carries the title, the authors, the year, the venue, the citation co
 - "What papers are related to DOI 10.48550/arXiv.1706.03762?"
 - "Who cited DOI 10.48550/arXiv.1706.03762?"
 - "What does DOI 10.1038/nature14539 cite?"
+- "Find authors named John Dewey."
 - "List papers by John Dewey on education since 1950."
 - "List papers by A. Duckworth on grit."
 
