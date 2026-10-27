@@ -419,7 +419,7 @@ export const tools: ToolDef<OpenAlex>[] = [
       return profiles
         .map(
           (p, i) =>
-            `${i + 1}. ${p.display_name ?? a.name} (${p.id}) - ${p.works_count ?? 0} works, ${p.cited_by_count ?? 0} citations`,
+            `${i + 1}. ${p.display_name ?? a.name} (${p.id}), ${p.works_count ?? 0} works, ${p.cited_by_count ?? 0} citations`,
         )
         .join("\n");
     },
