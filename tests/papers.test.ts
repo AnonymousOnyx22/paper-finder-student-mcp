@@ -172,6 +172,7 @@ describe("MCP tools", () => {
   it("lists the current tools and leaves the deprecated aliases out", async () => {
     const tools = (await client.listTools()).tools;
     expect(tools.map((t) => t.name).sort()).toEqual([
+      "find_authors",
       "find_citing_papers",
       "find_open_access_pdf",
       "find_related_papers",

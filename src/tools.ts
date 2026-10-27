@@ -10,6 +10,7 @@ import {
   authorIdPapers,
   authorPapers,
   citedBy,
+  findAuthors,
   getWork,
   line,
   references,
@@ -402,6 +403,25 @@ export const tools: ToolDef<OpenAlex>[] = [
       if (total > 0)
         return `OpenAlex lists ${total} papers matching the name "${a.author}", but none of them could be read on page ${page}. Try a lower page or a higher limit.`;
       return noAuthorMatches(a.author, opts, resolved ?? undefined);
+    },
+  },
+  {
+    name: "find_authors",
+    title: "Find authors by name",
+    description:
+      "Candidate authors matching a name, so you can pick the right one before listing their papers. Each line shows the OpenAlex author id, the name as OpenAlex writes it, and how many works and citations that profile has. Inputs: name (required, the author name to look up, for example Jane Doe). Example prompt: 'find authors named John Dewey'.",
+    inputSchema: {
+      name: z.string().min(2).describe("The author name to look up, for example Jane Doe."),
+    },
+    run: async (a, api) => {
+      const profiles = await findAuthors(api, a.name);
+      if (profiles.length === 0) return `OpenAlex has no author record for "${a.name}".`;
+      return profiles
+        .map(
+          (p, i) =>
+            `${i + 1}. ${p.display_name ?? a.name} (${p.id}) - ${p.works_count ?? 0} works, ${p.cited_by_count ?? 0} citations`,
+        )
+        .join("\n");
     },
   },
 ];
