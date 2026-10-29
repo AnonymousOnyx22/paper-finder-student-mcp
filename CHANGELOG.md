@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.7
 
 - `find_authors` finds candidate authors matching a name, so you can pick the right one before listing their papers with `list_author_papers`. Each line shows the OpenAlex author id, the name as OpenAlex writes it, and how many works and citations that profile has.
 
