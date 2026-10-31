@@ -75,6 +75,8 @@ The file is `.vscode/mcp.json` in your workspace. VS Code calls the key `servers
 }
 ```
 
+To use OpenAlex's faster polite pool, add an `env` block next to `args` with `"OPENALEX_MAILTO": "you@example.com"`, using your own email. It is optional and sent only to OpenAlex.
+
 Restart your AI app, then try one of the prompts below. You need Node.js 20 or newer. For Claude Code, run `claude mcp add paper-finder -- npx -y paper-finder-student-mcp`.
 
 ## What it looks like
@@ -164,7 +166,7 @@ Every tool description states its inputs and one example prompt, so clients can 
 - `from_year`, `to_year` and `min_citations` narrow the results, so a year range that is too narrow or a citation count that is too high can leave you with nothing. When a search finds nothing it says which of those filters to relax.
 - Author names go through the OpenAlex author records, so a name that is written in another form on the papers still finds them. OpenAlex sometimes keeps more than one profile for a name. In that case the tool shows the profile whose name matches best and has the most papers, and it lists the others. You can pass one of those ids, such as `A5108843829`, as `author` to see that profile.
 - Citation counts and open access links come from OpenAlex and can be a little behind the publisher.
-- If you want faster, more reliable service for heavy use, set `OPENALEX_EMAIL` to your own email. OpenAlex asks for it so they can reach you, and it is sent only to OpenAlex.
+- If you want faster, more reliable service for heavy use, set `OPENALEX_MAILTO` to your own email (`OPENALEX_EMAIL` works too). OpenAlex asks for it so they can reach you, and it is sent only to OpenAlex.
 - `OPENALEX_BASE_URL` points the server somewhere else, which the tests use.
 - Always read the paper yourself before you cite it. A catalog entry is not the paper.
 

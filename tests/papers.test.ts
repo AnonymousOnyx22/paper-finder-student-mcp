@@ -138,6 +138,24 @@ async function call(name: string, args: Record<string, unknown> = {}) {
   return callOn(client, name, args);
 }
 
+describe("polite pool email", () => {
+  it("reads OPENALEX_MAILTO, then falls back to OPENALEX_EMAIL", () => {
+    const saved = { mailto: process.env.OPENALEX_MAILTO, email: process.env.OPENALEX_EMAIL };
+    try {
+      process.env.OPENALEX_MAILTO = "a@example.com";
+      process.env.OPENALEX_EMAIL = "b@example.com";
+      expect(makeApi("http://x").email).toBe("a@example.com");
+      delete process.env.OPENALEX_MAILTO;
+      expect(makeApi("http://x").email).toBe("b@example.com");
+    } finally {
+      for (const [k, v] of [["OPENALEX_MAILTO", saved.mailto], ["OPENALEX_EMAIL", saved.email]] as const) {
+        if (v === undefined) delete process.env[k];
+        else process.env[k] = v;
+      }
+    }
+  });
+});
+
 describe("helpers", () => {
   it("rebuilds an abstract and normalizes ids", () => {
     expect(abstractOf({ Hello: [0], tested: [2], world: [1] })).toBe("Hello world tested");

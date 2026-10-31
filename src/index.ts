@@ -10,7 +10,8 @@ Academic paper search MCP server. Search scholarly papers and find free copies t
 Add it to your AI app's MCP config with command "npx" and args ["-y", "paper-finder-student-mcp"].
 
 Optional environment
-  OPENALEX_EMAIL    Your email, sent to OpenAlex so they can reach you about heavy use
+  OPENALEX_MAILTO   Your email, sent to OpenAlex so they can reach you about heavy use
+                    (OPENALEX_EMAIL works too)
 
   --help, --version`);
 }

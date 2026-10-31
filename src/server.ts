@@ -6,7 +6,7 @@ import { tools } from "./tools.js";
 
 export const VERSION = "0.1.8";
 
-export function makeApi(baseUrl = process.env.OPENALEX_BASE_URL || "https://api.openalex.org", email = process.env.OPENALEX_EMAIL || "", fetchImpl?: typeof fetch): OpenAlex {
+export function makeApi(baseUrl = process.env.OPENALEX_BASE_URL || "https://api.openalex.org", email = process.env.OPENALEX_MAILTO || process.env.OPENALEX_EMAIL || "", fetchImpl?: typeof fetch): OpenAlex {
   return { http: createClient({ baseUrl, headers: { "User-Agent": `paper-finder-student-mcp/${VERSION}` }, fetchImpl }), email: email || undefined };
 }
 
