@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- `format_citation` returns a ready to paste APA, MLA or BibTeX reference for one paper. Give it a DOI, a doi.org link or an OpenAlex id and a style.
+
 ## 0.1.8
 
 - Update the table of sibling MCP servers in the README

@@ -44,6 +44,11 @@
       "parameters": ["paper", "sort", "page", "limit"]
     },
     {
+      "name": "format_citation",
+      "description": "Returns a ready to paste reference for one paper in APA, MLA or BibTeX, built from the OpenAlex record. Parts the record does not have, such as authors or a venue, are left out instead of invented, so check the result against the paper before you hand it in. A wrong or unknown reference returns a not found error that suggests searching by title or checking the DOI format. Inputs: paper (required, a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807), style (required, apa, mla or bibtex). Example prompt: 'give me an APA citation for DOI 10.1038/nature14539.'",
+      "parameters": ["paper", "style"]
+    },
+    {
       "name": "find_authors",
       "description": "Candidate authors matching a name, so you can pick the right one before listing their papers. Each line shows the OpenAlex author id, the name as OpenAlex writes it, and how many works and citations that profile has. Inputs: name (required, the author name to look up, for example Jane Doe). Example prompt: 'find authors named John Dewey'.",
       "parameters": ["name"]

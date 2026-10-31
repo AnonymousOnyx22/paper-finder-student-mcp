@@ -4,6 +4,7 @@ import {
   type OpenAlex,
   type ResolvedAuthor,
   type Work,
+  CITATION_STYLES,
   SEARCH_SORTS,
   WORK_TYPES,
   abstractOf,
@@ -11,6 +12,7 @@ import {
   authorPapers,
   citedBy,
   findAuthors,
+  formatCitation,
   getWork,
   line,
   references,
@@ -254,6 +256,17 @@ export const tools: ToolDef<OpenAlex>[] = [
     deprecated: true,
     run: async (a, api) =>
       paperDetails(api, bareDoi(a.doi, "get_paper_by_doi takes a DOI like 10.1038/nature14539. Use get_paper if you have an OpenAlex id like W2741809807.")),
+  },
+  {
+    name: "format_citation",
+    title: "Format a citation",
+    description:
+      "Returns a ready to paste reference for one paper in APA, MLA or BibTeX, built from the OpenAlex record. Parts the record does not have, such as authors or a venue, are left out instead of invented, so check the result against the paper before you hand it in. A wrong or unknown reference returns a not found error that suggests searching by title or checking the DOI format. Inputs: paper (required, a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807), style (required, apa, mla or bibtex). Example prompt: 'give me an APA citation for DOI 10.1038/nature14539.'",
+    inputSchema: {
+      paper: ref,
+      style: z.enum(CITATION_STYLES).describe("The citation style: apa, mla or bibtex."),
+    },
+    run: async (a, api) => formatCitation(await getWork(api, a.paper), a.style),
   },
   {
     name: "find_open_access_pdf",

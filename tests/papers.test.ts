@@ -176,6 +176,7 @@ describe("MCP tools", () => {
       "find_citing_papers",
       "find_open_access_pdf",
       "find_related_papers",
+      "format_citation",
       "get_paper",
       "list_author_papers",
       "paper_references",
@@ -675,6 +676,17 @@ describe("MCP tools", () => {
     expect(r.text).toContain("timed out");
     expect(r.text).toContain("Try again shortly");
     await slow.close();
+  });
+});
+
+describe("format_citation tool", () => {
+  it("returns a reference in the chosen style", async () => {
+    const r = await call("format_citation", { paper: "10.1000/p2", style: "apa" });
+    expect(r.text).toContain("(2022). Paper 2.");
+    expect(r.text).toContain("https://doi.org/10.1000/p2");
+  });
+  it("returns a not found error for an unknown paper", async () => {
+    expect((await call("format_citation", { paper: "10.1000/unknown", style: "mla" })).code).toBe("not_found");
   });
 });
 

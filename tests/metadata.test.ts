@@ -54,6 +54,7 @@ describe("llms.txt, glama.json and README tool table", () => {
       "find_citing_papers",
       "find_open_access_pdf",
       "find_related_papers",
+      "format_citation",
       "get_paper",
       "list_author_papers",
       "paper_references",
