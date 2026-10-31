@@ -14,6 +14,7 @@ import {
   findAuthors,
   formatCitation,
   getWork,
+  getWorks,
   line,
   references,
   related,
@@ -245,6 +246,25 @@ export const tools: ToolDef<OpenAlex>[] = [
       if (a.paper) return paperDetails(api, a.paper);
       if (a.doi) return paperDetails(api, bareDoi(a.doi, "Use a DOI like 10.1038/nature14539, or pass an OpenAlex id like W2741809807 in paper."));
       throw new ToolError("get_paper needs a paper or a doi. Use a DOI like 10.1038/nature14539 or an OpenAlex id like W2741809807.", "invalid_ref");
+    },
+  },
+  {
+    name: "get_papers",
+    title: "Get several papers",
+    description:
+      "Looks up up to 10 papers in one call, so a pasted reference list does not need one call per paper. DOIs go to OpenAlex in one filter request and OpenAlex ids in another. Every paper found shows the same details as search_papers, with a one line abstract, in the order you gave them. A reference that OpenAlex does not know is listed at the end as not found instead of failing the whole call. Inputs: papers (required, 1 to 10 items, each a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807). Example prompt: 'look up these three DOIs: 10.1038/nature14539, 10.1038/nature16961 and 10.1126/science.aaa8415.'",
+    inputSchema: {
+      papers: z.array(ref).min(1).max(10).describe("1 to 10 papers, each a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807."),
+    },
+    run: async (a, api) => {
+      const entries = await getWorks(api, a.papers);
+      const found = entries.filter((e) => e.work);
+      const missing = entries.filter((e) => !e.work).map((e) => e.input);
+      const parts = [`Found ${found.length} of ${entries.length} papers.`];
+      if (found.length) parts.push(entries.map((e, i) => (e.work ? `${i + 1}. ${line(e.work, { snippet: true })}` : "")).filter(Boolean).join("\n\n"));
+      if (missing.length)
+        parts.push(`Not found in OpenAlex: ${missing.join(", ")}. Check the DOI format, or search by the title with search_papers. Do not invent a citation for these.`);
+      return parts.join("\n\n");
     },
   },
   {

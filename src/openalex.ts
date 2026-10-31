@@ -294,6 +294,42 @@ export async function getWork(api: OpenAlex, ref: string, fields: string = FULL_
   return getJson<Work>(api, `/works/${normalizeRef(ref)}`, params(api, { select: fields }), ref);
 }
 
+/** One reference from a batch, with the paper OpenAlex returned for it, if any. */
+export interface BatchEntry {
+  input: string;
+  work?: Work;
+}
+
+/** Looks up several papers at once. DOIs go in one filter request and OpenAlex ids in another, so a batch needs at most two requests. */
+export async function getWorks(api: OpenAlex, inputs: string[]): Promise<BatchEntry[]> {
+  const dois: string[] = [];
+  const ids: string[] = [];
+  const keys = inputs.map((input) => {
+    const norm = normalizeRef(input);
+    if (norm.startsWith("doi:")) {
+      const bare = norm.slice(4);
+      // A comma or a pipe would break OpenAlex filter syntax.
+      if (/[,|]/.test(bare))
+        throw new ToolError(`"${input}" has a comma or a pipe in it, which a batch lookup cannot send. Look it up with get_paper instead.`, "invalid_ref");
+      dois.push(bare);
+      return `doi:${bare.toLowerCase()}`;
+    }
+    ids.push(norm);
+    return norm.toUpperCase();
+  });
+  const found = new Map<string, Work>();
+  const fetchAll = async (filter: string, count: number) => {
+    const res: any = await getJson<any>(api, "/works", params(api, { filter, per_page: count, select: LIST_FIELDS }));
+    for (const w of (res.results ?? []) as Work[]) {
+      found.set(shortId(w.id).toUpperCase(), w);
+      if (w.doi) found.set(`doi:${w.doi.replace(/^https?:\/\/doi\.org\//i, "").toLowerCase()}`, w);
+    }
+  };
+  if (dois.length) await fetchAll(`doi:${dois.join("|")}`, dois.length);
+  if (ids.length) await fetchAll(`openalex:${ids.join("|")}`, ids.length);
+  return inputs.map((input, i) => ({ input, work: found.get(keys[i]) }));
+}
+
 type AuthorOpts = { fromYear?: number; toYear?: number; minCitations?: number; openAccessOnly?: boolean; limit: number; page?: number };
 
 /** The year, citation and open access filters that both author lookups share. */

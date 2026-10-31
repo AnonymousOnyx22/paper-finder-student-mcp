@@ -78,6 +78,10 @@ beforeAll(async () => {
         if (ids.every((id) => id === "W9999")) return json({ results: [] });
         return json({ results: ids.map((id) => work(Number(id.slice(1)), { abstract_inverted_index: abstractIndex(["Summary", "of", "paper", `${id}.`]) })) });
       }
+      if (filter.startsWith("doi:")) {
+        const dois = filter.slice(4).split("|").filter((d) => d !== "10.1000/missing");
+        return json({ results: dois.map((d) => work(Number(d.slice(9)), { abstract_inverted_index: abstractIndex(["Batch", "abstract."]) })) });
+      }
       if (filter.startsWith("cites:"))
         return json({
           meta: { count: 120 },
@@ -196,6 +200,7 @@ describe("MCP tools", () => {
       "find_related_papers",
       "format_citation",
       "get_paper",
+      "get_papers",
       "list_author_papers",
       "paper_references",
       "search_papers",
@@ -694,6 +699,30 @@ describe("MCP tools", () => {
     expect(r.text).toContain("timed out");
     expect(r.text).toContain("Try again shortly");
     await slow.close();
+  });
+});
+
+describe("get_papers tool", () => {
+  it("looks up DOIs in one request and keeps the order given", async () => {
+    const before = seen.length;
+    const r = await call("get_papers", { papers: ["https://doi.org/10.1000/P3", "10.1000/p2", "10.1000/missing"] });
+    expect(seen.length - before).toBe(1);
+    expect(seen[seen.length - 1].searchParams.get("filter")).toBe("doi:10.1000/P3|10.1000/p2|10.1000/missing");
+    expect(r.text).toContain("Found 2 of 3 papers.");
+    expect(r.text.indexOf("Paper 3")).toBeLessThan(r.text.indexOf("Paper 2"));
+    expect(r.text).toContain("Not found in OpenAlex: 10.1000/missing");
+  });
+  it("sends OpenAlex ids in a second request", async () => {
+    const before = seen.length;
+    const r = await call("get_papers", { papers: ["10.1000/p2", "W4"] });
+    expect(seen.length - before).toBe(2);
+    expect(r.text).toContain("Found 2 of 2 papers.");
+    expect(r.text).toContain("Paper 4");
+  });
+  it("rejects a bad reference and more than 10 papers", async () => {
+    expect((await call("get_papers", { papers: ["nope"] })).code).toBe("invalid_ref");
+    const many = Array.from({ length: 11 }, (_, i) => `10.1000/p${i + 2}`);
+    expect((await call("get_papers", { papers: many })).isError).toBe(true);
   });
 });
 

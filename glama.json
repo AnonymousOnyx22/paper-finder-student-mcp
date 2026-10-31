@@ -24,6 +24,11 @@
       "parameters": ["paper", "doi"]
     },
     {
+      "name": "get_papers",
+      "description": "Looks up up to 10 papers in one call, so a pasted reference list does not need one call per paper. DOIs go to OpenAlex in one filter request and OpenAlex ids in another. Every paper found shows the same details as search_papers, with a one line abstract, in the order you gave them. A reference that OpenAlex does not know is listed at the end as not found instead of failing the whole call. Inputs: papers (required, 1 to 10 items, each a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807). Example prompt: 'look up these three DOIs: 10.1038/nature14539, 10.1038/nature16961 and 10.1126/science.aaa8415.'",
+      "parameters": ["papers"]
+    },
+    {
       "name": "find_open_access_pdf",
       "description": "Finds a free to read copy of one paper and returns the link, preferring a PDF over a landing page. When OpenAlex has no free copy it says so in plain words instead of failing. Inputs: paper (required, a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807). Example prompt: 'find a free PDF of this paper, DOI 10.1038/nature14539.'",
       "parameters": ["paper"]

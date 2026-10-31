@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- `get_papers` looks up up to 10 DOIs or OpenAlex ids in one call, so a pasted reference list does not need one `get_paper` call per reference. References OpenAlex does not know are listed as not found.
+
 - `format_citation` returns a ready to paste APA, MLA or BibTeX reference for one paper. Give it a DOI, a doi.org link or an OpenAlex id and a style.
 
 - Set `OPENALEX_MAILTO` to your email to use OpenAlex's polite pool, which gives fewer rate limit errors. `OPENALEX_EMAIL` still works.
