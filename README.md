@@ -14,7 +14,7 @@ A search that matches thousands of papers says how many there are and which resu
 
 Results come straight from [OpenAlex](https://openalex.org), a free open catalog of scholarly works, so the papers are real, not invented. Free forever, no account and no key.
 
-Students often type things like 'find 5 sources for my essay on spaced repetition' or 'citations for my literature review'.
+Students often type things like 'find 5 sources for my essay on spaced repetition' or 'citations for my literature review'. Once you have a paper, ask for an 'APA citation', a 'BibTeX' entry or to 'cite this paper' in MLA, and `format_citation` gives you a reference to paste.
 
 ## Install
 
