@@ -6,7 +6,7 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { createServer, makeApi } from "../src/server.js";
 import { tools as toolDefs } from "../src/tools.js";
 import { createClient } from "../src/core/http.js";
-import { abstractOf, nameMatch, normalizeRef, snippetOf, spellingMatch, type OpenAlex } from "../src/openalex.js";
+import { abstractOf, formatCitation, nameMatch, normalizeRef, snippetOf, spellingMatch, type OpenAlex } from "../src/openalex.js";
 
 const work = (n: number, extra: Record<string, unknown> = {}) => ({
   id: `https://openalex.org/W${n}`,
@@ -675,5 +675,33 @@ describe("MCP tools", () => {
     expect(r.text).toContain("timed out");
     expect(r.text).toContain("Try again shortly");
     await slow.close();
+  });
+});
+
+describe("formatCitation", () => {
+  const w = work(2) as never;
+
+  it("formats APA with initials and an ampersand", () => {
+    expect(formatCitation(w, "apa")).toBe(
+      "One, A., Two, B., Three, C., & Four, D. (2022). Paper 2. Journal of Tests. https://doi.org/10.1000/p2",
+    );
+  });
+
+  it("formats MLA with et al for three or more authors", () => {
+    expect(formatCitation(w, "mla")).toBe('One, A, et al. "Paper 2." Journal of Tests, 2022, https://doi.org/10.1000/p2.');
+  });
+
+  it("formats BibTeX with a key and escaped characters", () => {
+    const out = formatCitation(work(1, { display_name: "Cats & Dogs" }) as never, "bibtex");
+    expect(out).toContain("@article{one2021,");
+    expect(out).toContain("title = {Cats \\& Dogs}");
+    expect(out).toContain("author = {One, A and Two, B and Three, C and Four, D}");
+    expect(out).toContain("doi = {10.1000/p1}");
+  });
+
+  it("leaves out missing parts", () => {
+    const bare = { id: "https://openalex.org/W9", display_name: "Solo" } as never;
+    expect(formatCitation(bare, "apa")).toBe("(n.d.). Solo.");
+    expect(formatCitation(bare, "mla")).toBe('"Solo."');
   });
 });

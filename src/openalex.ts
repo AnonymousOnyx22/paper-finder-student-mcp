@@ -106,6 +106,74 @@ export function line(w: Work, opts: { snippet?: boolean } = {}): string {
   return parts.filter(Boolean).join("\n");
 }
 
+export const CITATION_STYLES = ["apa", "mla", "bibtex"] as const;
+export type CitationStyle = (typeof CITATION_STYLES)[number];
+
+/** Splits an OpenAlex display name like "Jane Q. Smith" into given names and a family name. */
+function splitName(name: string): { given: string[]; family: string } {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  const family = parts.pop() ?? "";
+  return { given: parts, family };
+}
+
+function initials(given: string[]): string {
+  return given
+    .map((g) => g.split("-").map((p) => `${p.charAt(0).toUpperCase()}.`).join("-"))
+    .join(" ");
+}
+
+function plainDoi(doi?: string | null): string {
+  return doi ? doi.replace(/^https?:\/\/(dx\.)?doi\.org\//i, "") : "";
+}
+
+/** Formats a work as an APA, MLA or BibTeX reference. Missing parts are left out, never invented. */
+export function formatCitation(w: Work, style: CitationStyle): string {
+  const names = (w.authorships ?? [])
+    .map((a) => a.author?.display_name?.trim())
+    .filter((n): n is string => !!n)
+    .map(splitName);
+  const title = (w.display_name ?? w.title ?? "Untitled").trim().replace(/[.\s]+$/, "");
+  const venue = w.primary_location?.source?.display_name?.trim();
+  const year = w.publication_year;
+  const doi = plainDoi(w.doi);
+  const url = doi ? `https://doi.org/${doi}` : "";
+
+  if (style === "apa") {
+    const list = names.map((n) => (n.given.length ? `${n.family}, ${initials(n.given)}` : n.family));
+    let who = "";
+    if (list.length === 1) who = list[0]!;
+    else if (list.length === 2) who = `${list[0]}, & ${list[1]}`;
+    else if (list.length > 2) who = `${list.slice(0, -1).join(", ")}, & ${list[list.length - 1]}`;
+    const head = who ? `${who.replace(/\.$/, "")}. ` : "";
+    return `${head}(${year ?? "n.d."}). ${title}.${venue ? ` ${venue}.` : ""}${url ? ` ${url}` : ""}`;
+  }
+
+  if (style === "mla") {
+    let who = "";
+    const first = names[0];
+    if (first) {
+      const firstText = first.given.length ? `${first.family}, ${first.given.join(" ")}` : first.family;
+      if (names.length === 1) who = firstText;
+      else if (names.length === 2) who = `${firstText}, and ${names[1]!.given.concat(names[1]!.family).join(" ")}`;
+      else who = `${firstText}, et al`;
+    }
+    const head = who ? `${who.replace(/\.$/, "")}. ` : "";
+    const rest = [venue, year ? String(year) : "", url].filter(Boolean).join(", ");
+    return `${head}"${title}."${rest ? ` ${rest}.` : ""}`;
+  }
+
+  const escape = (s: string) => s.replace(/([&%$#_{}])/g, "\\$1");
+  const key = `${(names[0]?.family ?? "unknown").toLowerCase().replace(/[^a-z0-9]/g, "")}${year ?? ""}`;
+  const fields = [
+    ["title", escape(title)],
+    names.length ? ["author", names.map((n) => escape([n.family, n.given.join(" ")].filter(Boolean).join(", "))).join(" and ")] : null,
+    venue ? ["journal", escape(venue)] : null,
+    year ? ["year", String(year)] : null,
+    doi ? ["doi", doi] : null,
+  ].filter((f): f is string[] => f !== null);
+  return `@article{${key || "unknown"},\n${fields.map(([k, v]) => `  ${k} = {${v}}`).join(",\n")}\n}`;
+}
+
 export interface AuthorProfile {
   id: string;
   display_name?: string;
