@@ -1,6 +1,6 @@
 # Changelog
 
-## Unreleased
+## 0.1.9
 
 - `search_papers` takes an optional `venue` input, a journal name like Nature or an OpenAlex source id, to keep the results to papers from that venue. The results heading names the venue that was picked. Without it nothing changes.
 
