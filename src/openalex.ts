@@ -308,8 +308,25 @@ export async function search(
   return workPage(res, opts.limit);
 }
 
+const WORK_CACHE_TTL_MS = 5 * 60 * 1000;
+const WORK_CACHE_MAX = 100;
+const workCaches = new WeakMap<OpenAlex, Map<string, { at: number; work: Work }>>();
+
+/** Looks up one paper. Repeat lookups of the same paper and fields within a few minutes come from memory. */
 export async function getWork(api: OpenAlex, ref: string, fields: string = FULL_FIELDS): Promise<Work> {
-  return getJson<Work>(api, `/works/${normalizeRef(ref)}`, params(api, { select: fields }), ref);
+  let cache = workCaches.get(api);
+  if (!cache) {
+    cache = new Map();
+    workCaches.set(api, cache);
+  }
+  const key = `${normalizeRef(ref).toLowerCase()}|${fields}`;
+  const hit = cache.get(key);
+  if (hit && Date.now() - hit.at < WORK_CACHE_TTL_MS) return structuredClone(hit.work);
+  const work = await getJson<Work>(api, `/works/${normalizeRef(ref)}`, params(api, { select: fields }), ref);
+  cache.delete(key);
+  if (cache.size >= WORK_CACHE_MAX) cache.delete(cache.keys().next().value as string);
+  cache.set(key, { at: Date.now(), work: structuredClone(work) });
+  return work;
 }
 
 /** One reference from a batch, with the paper OpenAlex returned for it, if any. */

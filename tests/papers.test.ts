@@ -604,11 +604,19 @@ describe("MCP tools", () => {
     expect(r.text).toContain("Paper 21");
     expect(r.text).not.toContain("Paper 20");
   });
-  it("takes the papers a paper cites from the OpenAlex reference list", async () => {
+  it("looks a paper up once when several tools ask for it in a row", async () => {
+    const c = await connect(makeApi(base, "me@example.com"));
     const before = seen.length;
-    await call("paper_references", { paper: "W2" });
-    const base = seen.slice(before).find((s) => s.pathname === "/works/W2");
-    expect(base?.searchParams.get("select")).toContain("referenced_works");
+    await callOn(c, "get_paper", { paper: "W2" });
+    await callOn(c, "find_open_access_pdf", { paper: "W2" });
+    expect(seen.slice(before).filter((s) => s.pathname === "/works/W2")).toHaveLength(1);
+  });
+  it("takes the papers a paper cites from the OpenAlex reference list", async () => {
+    const c = await connect(makeApi(base, "me@example.com"));
+    const before = seen.length;
+    await callOn(c, "paper_references", { paper: "W2" });
+    const req = seen.slice(before).find((s) => s.pathname === "/works/W2");
+    expect(req?.searchParams.get("select")).toContain("referenced_works");
   });
   it("says plainly when a paper has no reference list in OpenAlex", async () => {
     const r = await call("paper_references", { paper: "10.1000/p3" });
