@@ -3,6 +3,7 @@ import { ToolError, type ToolDef } from "./core/tools.js";
 import {
   type OpenAlex,
   type ResolvedAuthor,
+  type ResolvedVenue,
   type Work,
   CITATION_STYLES,
   SEARCH_SORTS,
@@ -19,6 +20,7 @@ import {
   references,
   related,
   resolveAuthor,
+  resolveVenue,
   search,
 } from "./openalex.js";
 
@@ -173,7 +175,7 @@ export const tools: ToolDef<OpenAlex>[] = [
     name: "search_papers",
     title: "Search papers",
     description:
-      "Search scholarly papers by keywords. Returns title, authors, year, venue, citation count, DOI, a one line abstract and a free to read link when one exists. A showing line under the heading says which results are on this page and how many matched in all, with the page to ask for next, so a long list can be read a page at a time. The results can be ordered, so you can get the most cited papers on a topic or the newest ones, and they can be limited to one kind of paper, to a range of years, to a minimum number of citations or to papers whose title carries the search words. Inputs: query (required keywords), from_year (optional earliest publication year), to_year (optional latest publication year), min_citations (optional, keep only the papers with at least this many citations), open_access_only (optional, false by default), title_only (optional, false by default, keep only the papers whose title carries the search words), type (optional, journal_article, preprint or book_chapter), sort (optional, relevance for the OpenAlex order, cited_by_count:desc for the most cited papers first, or publication_date:desc for the newest papers first), page (optional, which page of results to show, 1 to 400, 1 by default), limit (optional, 1 to 25, default 8). Example prompt: 'find the most cited papers on spaced repetition since 2020.'",
+      "Search scholarly papers by keywords. Returns title, authors, year, venue, citation count, DOI, a one line abstract and a free to read link when one exists. A showing line under the heading says which results are on this page and how many matched in all, with the page to ask for next, so a long list can be read a page at a time. The results can be ordered, so you can get the most cited papers on a topic or the newest ones, and they can be limited to one kind of paper, to a range of years, to a minimum number of citations or to papers whose title carries the search words, or to one journal or other venue. Inputs: query (required keywords), from_year (optional earliest publication year), to_year (optional latest publication year), min_citations (optional, keep only the papers with at least this many citations), open_access_only (optional, false by default), title_only (optional, false by default, keep only the papers whose title carries the search words), type (optional, journal_article, preprint or book_chapter), venue (optional, a journal or other venue name like Nature, or an OpenAlex source id like S137773608, keep only the papers whose main location is that venue), sort (optional, relevance for the OpenAlex order, cited_by_count:desc for the most cited papers first, or publication_date:desc for the newest papers first), page (optional, which page of results to show, 1 to 400, 1 by default), limit (optional, 1 to 25, default 8). Example prompt: 'find the most cited papers on spaced repetition since 2020.'",
     inputSchema: {
       query: z.string().min(2).describe("Keywords, for example: spaced repetition exam performance."),
       from_year: fromYear,
@@ -185,6 +187,11 @@ export const tools: ToolDef<OpenAlex>[] = [
         .enum(["journal_article", "preprint", "book_chapter"])
         .optional()
         .describe("Keep only one kind of paper: journal_article, preprint or book_chapter."),
+      venue: z
+        .string()
+        .min(2)
+        .optional()
+        .describe("Keep only papers whose main location is this venue: a journal name like Nature, or an OpenAlex source id like S137773608."),
       sort: z
         .enum(["relevance", "cited_by_count:desc", "publication_date:desc"])
         .optional()
@@ -199,6 +206,12 @@ export const tools: ToolDef<OpenAlex>[] = [
           "invalid_range",
         );
       const page = a.page ?? 1;
+      let venue: ResolvedVenue | undefined;
+      if (a.venue) {
+        venue = (await resolveVenue(api, a.venue)) ?? undefined;
+        if (!venue)
+          return `No venue found for "${a.venue}". Check the spelling, or pass an OpenAlex source id like S137773608 as venue.`;
+      }
       const { works, total } = await search(api, a.query, {
         fromYear: a.from_year,
         toYear: a.to_year,
@@ -207,6 +220,7 @@ export const tools: ToolDef<OpenAlex>[] = [
         sort: SEARCH_SORTS[a.sort ?? "relevance"],
         type: WORK_TYPES[a.type ?? ""],
         titleOnly: a.title_only,
+        venueId: venue?.id,
         limit: a.limit,
         page,
       });
@@ -221,11 +235,13 @@ export const tools: ToolDef<OpenAlex>[] = [
           fixes.push(`Lower min_citations, nothing matched with ${a.min_citations} citations or more.`);
         if (a.type) fixes.push(`Drop the type filter, no ${TYPE_LABELS[a.type]} matched.`);
         if (a.title_only) fixes.push("Set title_only to false, some papers mention the topic in the abstract rather than the title.");
+        if (venue) fixes.push(`Drop the venue filter, no paper in ${venue.name} matched.`);
         return `No papers found for "${a.query}". ${fixes.join(" ")}`;
       }
       const head = [`Papers about "${a.query}"`];
       if (a.type) head.push(`${TYPE_LABELS[a.type]} only`);
       if (a.title_only) head.push("title matches only");
+      if (venue) head.push(`in ${venue.name}`);
       if (a.to_year !== undefined)
         head.push(a.from_year !== undefined ? `published ${a.from_year} to ${a.to_year}` : `published up to ${a.to_year}`);
       if (a.min_citations !== undefined) head.push(`at least ${a.min_citations} citations`);

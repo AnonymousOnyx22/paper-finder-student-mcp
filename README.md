@@ -145,7 +145,7 @@ Paper Finder MCP is the one where every line has a live catalog record behind it
 
 | Tool | What it does | Parameters |
 | --- | --- | --- |
-| `search_papers` | Search scholarly works by keywords, with optional year range, citation count, open access, title matches, type and order settings | `query`, `from_year`, `to_year`, `min_citations`, `open_access_only`, `title_only`, `type`, `sort`, `page`, `limit` |
+| `search_papers` | Search scholarly works by keywords, with optional year range, citation count, open access, title matches, type, venue and order settings | `query`, `from_year`, `to_year`, `min_citations`, `open_access_only`, `title_only`, `type`, `venue`, `sort`, `page`, `limit` |
 | `get_paper` | Details for one paper from its DOI, doi.org link or OpenAlex id, including the abstract | `paper`, `doi` |
 | `get_papers` | Details for up to 10 papers at once from their DOIs or OpenAlex ids, for a pasted reference list | `papers` |
 | `find_open_access_pdf` | The free to read copy of one paper, preferring a PDF link, or a plain note that none exists | `paper` |
@@ -163,6 +163,7 @@ Every tool description states its inputs and one example prompt, so clients can 
 ## Good to know
 
 - Lookups that miss are flagged as errors with a stable code, not empty results. A wrong or unknown reference returns a not found error that suggests searching by the title or checking the DOI format, and a rate limit returns an error that says to wait about a minute and retry. An OpenAlex outage, such as a server error, a request that runs out of time or a connection that breaks, returns an upstream error with the code `upstream_error` and says to try again shortly, so a client can tell an outage from a bad request. A missing free copy is not an error, `find_open_access_pdf` just says that none was found.
+- `venue` limits a search to one journal or other venue. Give a name like `Nature` and the server asks OpenAlex for the best matching source, then keeps only the papers whose main location is that source. The heading of the results names the venue it picked, so check that it is the one you meant. You can also pass an OpenAlex source id like `S137773608` to be exact.
 - `sort` reorders the papers OpenAlex matched. It does not change which papers match, so on a broad topic the most cited match can be a famous paper that only mentions the topic. Ask for `relevance` when you want the closest match first, or set `title_only` to true so only the papers with the search words in the title come back.
 - `from_year`, `to_year` and `min_citations` narrow the results, so a year range that is too narrow or a citation count that is too high can leave you with nothing. When a search finds nothing it says which of those filters to relax.
 - Author names go through the OpenAlex author records, so a name that is written in another form on the papers still finds them. OpenAlex sometimes keeps more than one profile for a name. In that case the tool shows the profile whose name matches best and has the most papers, and it lists the others. You can pass one of those ids, such as `A5108843829`, as `author` to see that profile.

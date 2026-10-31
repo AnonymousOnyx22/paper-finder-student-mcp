@@ -252,6 +252,22 @@ async function getJson<T>(
   }
 }
 
+/** A journal or other venue as OpenAlex knows it. */
+export interface ResolvedVenue {
+  id: string;
+  name: string;
+}
+
+/** Turns a venue name or an OpenAlex source id into a source id, using the best name match. */
+export async function resolveVenue(api: OpenAlex, venue: string): Promise<ResolvedVenue | null> {
+  const typed = venue.trim();
+  if (/^S\d+$/i.test(typed)) return { id: typed.toUpperCase(), name: typed.toUpperCase() };
+  const res: any = await getJson<any>(api, "/sources", params(api, { search: typed, per_page: 1, select: "id,display_name" }));
+  const top = (res.results ?? [])[0];
+  const id = top ? shortId(String(top.id ?? "")) : "";
+  return id ? { id, name: String(top.display_name ?? id) } : null;
+}
+
 export async function search(
   api: OpenAlex,
   query: string,
@@ -263,6 +279,7 @@ export async function search(
     sort?: string;
     type?: string;
     titleOnly?: boolean;
+    venueId?: string;
     limit: number;
     page?: number;
   },
@@ -276,6 +293,7 @@ export async function search(
   if (opts.type) filters.push(`type:${opts.type}`);
   // A comma or a pipe would break OpenAlex filter syntax, so the title search uses plain words.
   if (opts.titleOnly) filters.push(`title.search:${query.replace(/[,|]+/g, " ").replace(/\s+/g, " ").trim()}`);
+  if (opts.venueId) filters.push(`primary_location.source.id:${opts.venueId}`);
   const res: any = await getJson<any>(
     api,
     "/works",

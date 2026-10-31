@@ -2,6 +2,8 @@
 
 ## Unreleased
 
+- `search_papers` takes an optional `venue` input, a journal name like Nature or an OpenAlex source id, to keep the results to papers from that venue. The results heading names the venue that was picked. Without it nothing changes.
+
 - `get_papers` looks up up to 10 DOIs or OpenAlex ids in one call, so a pasted reference list does not need one `get_paper` call per reference. References OpenAlex does not know are listed as not found.
 
 - `format_citation` returns a ready to paste APA, MLA or BibTeX reference for one paper. Give it a DOI, a doi.org link or an OpenAlex id and a style.

@@ -67,6 +67,11 @@ beforeAll(async () => {
       if (!profile) return json({ error: "not found" }, 404);
       return json(profile);
     }
+    if (url.pathname === "/sources") {
+      if (url.searchParams.get("search") === "Journal of Tests")
+        return json({ results: [{ id: "https://openalex.org/S42", display_name: "Journal of Tests" }] });
+      return json({ results: [] });
+    }
     if (url.pathname === "/works") {
       const q = url.searchParams.get("search");
       const filter = url.searchParams.get("filter") ?? "";
@@ -305,6 +310,23 @@ describe("MCP tools", () => {
     expect(seen[seen.length - 1].searchParams.get("filter")).toBe(
       "from_publication_date:2015-01-01,cited_by_count:>49,is_oa:true,type:article,title.search:spaced repetition",
     );
+  });
+  it("limits a search to a venue found by name and names it in the heading", async () => {
+    const r = await call("search_papers", { query: "spaced repetition", venue: "Journal of Tests", from_year: 2021, limit: 2 });
+    expect(r.isError).toBe(false);
+    expect(r.text).toContain("in Journal of Tests");
+    expect(seen[seen.length - 1].searchParams.get("filter")).toBe(
+      "from_publication_date:2021-01-01,primary_location.source.id:S42",
+    );
+  });
+  it("takes an OpenAlex source id as the venue without a lookup", async () => {
+    await call("search_papers", { query: "spaced repetition", venue: "s137773608", limit: 2 });
+    expect(seen[seen.length - 1].searchParams.get("filter")).toBe("primary_location.source.id:S137773608");
+  });
+  it("says so when the venue is unknown", async () => {
+    const r = await call("search_papers", { query: "spaced repetition", venue: "No Such Journal" });
+    expect(r.isError).toBe(false);
+    expect(r.text).toContain("No venue found");
   });
   it("names the title filter when nothing matches", async () => {
     const r = await call("search_papers", { query: "nothing", title_only: true });
