@@ -1,5 +1,9 @@
 # Changelog
 
+## Unreleased
+
+- When `search_papers` or `list_author_papers` finds nothing, the message now names the year range and `min_citations` filters to relax, and says when they narrow the results together. `search_papers` also points out that `sort` only reorders results and will not bring back more papers.
+
 ## 0.1.9
 
 - `search_papers` takes an optional `venue` input, a journal name like Nature or an OpenAlex source id, to keep the results to papers from that venue. The results heading names the venue that was picked. Without it nothing changes.

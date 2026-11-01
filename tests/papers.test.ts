@@ -249,6 +249,15 @@ describe("MCP tools", () => {
     expect(typed.isError).toBe(false);
     expect(typed.text).toContain("type");
   });
+  it("names the year range and citation filters to relax when they leave nothing", async () => {
+    const r = await call("search_papers", { query: "nothing", from_year: 2020, to_year: 2021, min_citations: 900, sort: "cited_by_count:desc" });
+    expect(r.text).toContain("Widen the year range, nothing matched from 2020 to 2021");
+    expect(r.text).toContain("Lower min_citations");
+    expect(r.text).toContain("relax one at a time");
+    expect(r.text).toContain("Changing sort will not help");
+    const a = await call("list_author_papers", { author: "Nobody", from_year: 2020, to_year: 2021 });
+    expect(a.text).toContain("Widen the year range");
+  });
   it("orders search results by the most cited papers first", async () => {
     const r = await call("search_papers", { query: "spaced repetition", sort: "cited_by_count:desc", limit: 2 });
     expect(r.isError).toBe(false);

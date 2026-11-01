@@ -139,6 +139,20 @@ async function citingPapers(a: { paper: string; limit: number; page?: number }, 
   );
 }
 
+/** Fixes for the year and citation filters, which are the usual reason a search comes back empty. */
+function narrowingFixes(used: { fromYear?: number; toYear?: number; minCitations?: number }): string[] {
+  const fixes: string[] = [];
+  if (used.fromYear && used.toYear)
+    fixes.push(`Widen the year range, nothing matched from ${used.fromYear} to ${used.toYear}. Lower from_year or raise to_year.`);
+  else if (used.fromYear) fixes.push(`Lower from_year, nothing matched from ${used.fromYear} onwards.`);
+  else if (used.toYear) fixes.push(`Raise to_year, nothing matched up to ${used.toYear}.`);
+  if (used.minCitations !== undefined)
+    fixes.push(`Lower min_citations, nothing matched with ${used.minCitations} citations or more.`);
+  if ((used.fromYear || used.toYear) && used.minCitations !== undefined)
+    fixes.push("The year range and min_citations narrow the results together, so relax one at a time.");
+  return fixes;
+}
+
 function noAuthorMatches(
   author: string,
   used: { fromYear?: number; toYear?: number; minCitations?: number; openAccessOnly?: boolean },
@@ -154,10 +168,7 @@ function noAuthorMatches(
     fixes.push("Try the name as it appears on the paper, for example John Smith.");
   }
   if (used.openAccessOnly) fixes.push("Set open_access_only to false.");
-  if (used.fromYear) fixes.push(`Lower from_year, nothing matched from ${used.fromYear} onwards.`);
-  if (used.toYear) fixes.push(`Raise to_year, nothing matched up to ${used.toYear}.`);
-  if (used.minCitations !== undefined)
-    fixes.push(`Lower min_citations, nothing matched with ${used.minCitations} citations or more.`);
+  fixes.push(...narrowingFixes(used));
   const others = resolved ? sameNameNote(resolved) : "";
   return `No papers found for author "${author}". ${fixes.join(" ")}${others ? ` ${others}` : ""}`;
 }
@@ -229,12 +240,11 @@ export const tools: ToolDef<OpenAlex>[] = [
         if (past) return past;
         const fixes = ["Try fewer or broader keywords."];
         if (a.open_access_only) fixes.push("Set open_access_only to false, some good papers have no free copy.");
-        if (a.from_year) fixes.push(`Lower from_year, nothing matched from ${a.from_year} onwards.`);
-        if (a.to_year) fixes.push(`Raise to_year, nothing matched up to ${a.to_year}.`);
-        if (a.min_citations !== undefined)
-          fixes.push(`Lower min_citations, nothing matched with ${a.min_citations} citations or more.`);
+        fixes.push(...narrowingFixes({ fromYear: a.from_year, toYear: a.to_year, minCitations: a.min_citations }));
         if (a.type) fixes.push(`Drop the type filter, no ${TYPE_LABELS[a.type]} matched.`);
         if (a.title_only) fixes.push("Set title_only to false, some papers mention the topic in the abstract rather than the title.");
+        else if (a.sort && a.sort !== "relevance")
+          fixes.push("Changing sort will not help, it only reorders the papers that match, so relax a filter instead.");
         if (venue) fixes.push(`Drop the venue filter, no paper in ${venue.name} matched.`);
         return `No papers found for "${a.query}". ${fixes.join(" ")}`;
       }
