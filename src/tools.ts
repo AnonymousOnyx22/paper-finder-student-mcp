@@ -307,10 +307,10 @@ export const tools: ToolDef<OpenAlex>[] = [
     name: "format_citation",
     title: "Format a citation",
     description:
-      "Returns a ready to paste reference for one paper in APA, MLA or BibTeX, built from the OpenAlex record. Parts the record does not have, such as authors or a venue, are left out instead of invented, so check the result against the paper before you hand it in. A wrong or unknown reference returns a not found error that suggests searching by title or checking the DOI format. Inputs: paper (required, a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807), style (required, apa, mla or bibtex). Example prompt: 'give me an APA citation for DOI 10.1038/nature14539.'",
+      "Returns a ready to paste reference for one paper in APA, MLA, Chicago, Harvard, IEEE or BibTeX, built from the OpenAlex record. Parts the record does not have, such as authors or a venue, are left out instead of invented, so check the result against the paper before you hand it in. A wrong or unknown reference returns a not found error that suggests searching by title or checking the DOI format. Inputs: paper (required, a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807), style (required, apa, mla, chicago, harvard, ieee or bibtex). Example prompt: 'give me an APA citation for DOI 10.1038/nature14539.'",
     inputSchema: {
       paper: ref,
-      style: z.enum(CITATION_STYLES).describe("The citation style: apa, mla or bibtex."),
+      style: z.enum(CITATION_STYLES).describe("The citation style: apa, mla, chicago, harvard, ieee or bibtex."),
     },
     run: async (a, api) => formatCitation(await getWork(api, a.paper), a.style),
   },

@@ -804,6 +804,25 @@ describe("formatCitation", () => {
     expect(out).toContain("doi = {10.1000/p1}");
   });
 
+  it("formats Chicago, Harvard and IEEE", () => {
+    expect(formatCitation(w, "chicago")).toBe(
+      'One, A, B Two, C Three, and D Four. "Paper 2." Journal of Tests, 2022. https://doi.org/10.1000/p2.',
+    );
+    expect(formatCitation(w, "harvard")).toBe(
+      "One, A. et al. (2022) 'Paper 2', Journal of Tests. Available at: https://doi.org/10.1000/p2.",
+    );
+    expect(formatCitation(w, "ieee")).toBe(
+      'A. One, B. Two, C. Three, and D. Four, "Paper 2," Journal of Tests, 2022, doi: 10.1000/p2.',
+    );
+  });
+
+  it("leaves out missing parts in the new styles", () => {
+    const bare = { id: "https://openalex.org/W9", display_name: "Solo" } as never;
+    expect(formatCitation(bare, "chicago")).toBe('"Solo."');
+    expect(formatCitation(bare, "harvard")).toBe("(no date) 'Solo'.");
+    expect(formatCitation(bare, "ieee")).toBe('"Solo,"');
+  });
+
   it("leaves out missing parts", () => {
     const bare = { id: "https://openalex.org/W9", display_name: "Solo" } as never;
     expect(formatCitation(bare, "apa")).toBe("(n.d.). Solo.");

@@ -108,7 +108,7 @@ export function line(w: Work, opts: { snippet?: boolean } = {}): string {
   return parts.filter(Boolean).join("\n");
 }
 
-export const CITATION_STYLES = ["apa", "mla", "bibtex"] as const;
+export const CITATION_STYLES = ["apa", "mla", "bibtex", "chicago", "harvard", "ieee"] as const;
 export type CitationStyle = (typeof CITATION_STYLES)[number];
 
 /** Splits an OpenAlex display name like "Jane Q. Smith" into given names and a family name. */
@@ -128,7 +128,7 @@ function plainDoi(doi?: string | null): string {
   return doi ? doi.replace(/^https?:\/\/(dx\.)?doi\.org\//i, "") : "";
 }
 
-/** Formats a work as an APA, MLA or BibTeX reference. Missing parts are left out, never invented. */
+/** Formats a work as an APA, MLA, Chicago, Harvard, IEEE or BibTeX reference. Missing parts are left out, never invented. */
 export function formatCitation(w: Work, style: CitationStyle): string {
   const names = (w.authorships ?? [])
     .map((a) => a.author?.display_name?.trim())
@@ -162,6 +162,42 @@ export function formatCitation(w: Work, style: CitationStyle): string {
     const head = who ? `${who.replace(/\.$/, "")}. ` : "";
     const rest = [venue, year ? String(year) : "", url].filter(Boolean).join(", ");
     return `${head}"${title}."${rest ? ` ${rest}.` : ""}`;
+  }
+
+  if (style === "chicago") {
+    const shown = names.length > 10 ? names.slice(0, 7) : names;
+    const list = shown.map((n, i) =>
+      i === 0 && n.given.length ? `${n.family}, ${n.given.join(" ")}` : n.given.concat(n.family).join(" "),
+    );
+    let who = "";
+    if (names.length > 10) who = `${list.join(", ")}, et al`;
+    else if (list.length === 1) who = list[0]!;
+    else if (list.length === 2) who = `${list[0]} and ${list[1]}`;
+    else if (list.length > 2) who = `${list.slice(0, -1).join(", ")}, and ${list[list.length - 1]}`;
+    const head = who ? `${who.replace(/\.$/, "")}. ` : "";
+    const rest = [venue, year ? String(year) : ""].filter(Boolean).join(", ");
+    return `${head}"${title}."${rest ? ` ${rest}.` : ""}${url ? ` ${url}.` : ""}`;
+  }
+
+  if (style === "harvard") {
+    const list = names.map((n) => (n.given.length ? `${n.family}, ${initials(n.given)}` : n.family));
+    let who = "";
+    if (list.length === 1) who = list[0]!;
+    else if (list.length > 1 && list.length < 4) who = `${list.slice(0, -1).join(", ")} and ${list[list.length - 1]}`;
+    else if (list.length >= 4) who = `${list[0]} et al.`;
+    const head = who ? `${who} ` : "";
+    return `${head}(${year ?? "no date"}) '${title}'${venue ? `, ${venue}` : ""}.${url ? ` Available at: ${url}.` : ""}`;
+  }
+
+  if (style === "ieee") {
+    const list = names.map((n) => (n.given.length ? `${initials(n.given)} ${n.family}` : n.family));
+    let who = "";
+    if (list.length === 1) who = list[0]!;
+    else if (list.length === 2) who = `${list[0]} and ${list[1]}`;
+    else if (list.length > 6) who = `${list[0]} et al.`;
+    else if (list.length > 2) who = `${list.slice(0, -1).join(", ")}, and ${list[list.length - 1]}`;
+    const tail = [venue, year ? String(year) : "", doi ? `doi: ${doi}` : ""].filter(Boolean).join(", ");
+    return `${who ? `${who}, ` : ""}"${title},"${tail ? ` ${tail}.` : ""}`;
   }
 
   const escape = (s: string) => s.replace(/([&%$#_{}])/g, "\\$1");

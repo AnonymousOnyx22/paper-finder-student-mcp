@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- `format_citation` now also accepts the styles `chicago`, `harvard` and `ieee`. The existing `apa`, `mla` and `bibtex` styles give the same output as before.
 - `get_paper`, `get_papers` and the paper lists now print a WARNING line under the title when OpenAlex marks a paper as retracted, so you do not cite one by mistake.
 - `search_papers` now shows the OpenAlex source id it resolved the venue filter to, right next to the venue name in the results heading, so a wrong venue pick is visible at a glance.
 - When `search_papers` or `list_author_papers` finds nothing, the message now names the year range and `min_citations` filters to relax, and says when they narrow the results together. `search_papers` also points out that `sort` only reorders results and will not bring back more papers.

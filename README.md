@@ -22,7 +22,7 @@ Students often type things like 'find 5 sources for my essay on spaced repetitio
 
 2. **Follow the citations.** Pick a paper and ask: "What does this paper cite?" or "Which papers cite it?" This uses `paper_references` and `find_citing_papers`.
 
-3. **Format the reference.** Ask: "Give me the APA citation for this paper." This uses `format_citation`, and it also does MLA and BibTeX.
+3. **Format the reference.** Ask: "Give me the APA citation for this paper." This uses `format_citation`, and it also does MLA, Chicago, Harvard, IEEE and BibTeX.
 
 ## Install
 
@@ -162,7 +162,7 @@ Paper Finder MCP is the one where every line has a live catalog record behind it
 | `find_related_papers` | Papers OpenAlex marks as related to a paper | `paper`, `page`, `limit` |
 | `find_citing_papers` | Newer papers that cite a paper, most recent first | `paper`, `page`, `limit` |
 | `paper_references` | The papers a paper cites, so you can read its bibliography | `paper`, `sort`, `page`, `limit` |
-| `format_citation` | A ready to paste APA, MLA or BibTeX reference for one paper, built from its OpenAlex record | `paper`, `style` |
+| `format_citation` | A ready to paste APA, MLA, Chicago, Harvard, IEEE or BibTeX reference for one paper, built from its OpenAlex record | `paper`, `style` |
 | `find_authors` | Candidate authors matching a name, so you can pick the right one before listing their papers | `name` |
 | `list_author_papers` | Papers by one author, most cited first, with the name looked up in the OpenAlex author records, with optional year range and citation count | `author`, `from_year`, `to_year`, `min_citations`, `open_access_only`, `page`, `limit` |
 
