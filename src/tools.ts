@@ -245,13 +245,13 @@ export const tools: ToolDef<OpenAlex>[] = [
         if (a.title_only) fixes.push("Set title_only to false, some papers mention the topic in the abstract rather than the title.");
         else if (a.sort && a.sort !== "relevance")
           fixes.push("Changing sort will not help, it only reorders the papers that match, so relax a filter instead.");
-        if (venue) fixes.push(`Drop the venue filter, no paper in ${venue.name} matched.`);
+        if (venue) fixes.push(`Drop the venue filter, no paper in ${venue.name} (${venue.id}) matched.`);
         return `No papers found for "${a.query}". ${fixes.join(" ")}`;
       }
       const head = [`Papers about "${a.query}"`];
       if (a.type) head.push(`${TYPE_LABELS[a.type]} only`);
       if (a.title_only) head.push("title matches only");
-      if (venue) head.push(`in ${venue.name}`);
+      if (venue) head.push(`in ${venue.name} (${venue.id})`);
       if (a.to_year !== undefined)
         head.push(a.from_year !== undefined ? `published ${a.from_year} to ${a.to_year}` : `published up to ${a.to_year}`);
       if (a.min_citations !== undefined) head.push(`at least ${a.min_citations} citations`);
