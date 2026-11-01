@@ -16,6 +16,14 @@ Results come straight from [OpenAlex](https://openalex.org), a free open catalog
 
 Students often type things like 'find 5 sources for my essay on spaced repetition' or 'citations for my literature review'. Once you have a paper, ask for an 'APA citation', a 'BibTeX' entry or to 'cite this paper' in MLA, and `format_citation` gives you a reference to paste.
 
+### Essay workflow in three steps
+
+1. **Find sources.** Ask: "Find 5 sources for my essay on spaced repetition." This uses `search_papers`.
+
+2. **Follow the citations.** Pick a paper and ask: "What does this paper cite?" or "Which papers cite it?" This uses `paper_references` and `find_citing_papers`.
+
+3. **Format the reference.** Ask: "Give me the APA citation for this paper." This uses `format_citation`, and it also does MLA and BibTeX.
+
 ## Install
 
 [![Install in Cursor](https://cursor.com/deeplink/mcp-install-dark.svg)](cursor://anysphere.cursor-deeplink/mcp/install?name=paper-finder&config=eyJ0eXBlIjoic3RkaW8iLCJjb21tYW5kIjoibnB4IiwiYXJncyI6WyIteSIsInBhcGVyLWZpbmRlci1zdHVkZW50LW1jcCJdfQ==) [![Install in VS Code](https://img.shields.io/badge/VS_Code-Install_Server-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white)](vscode:mcp/install?%7B%22name%22%3A%22paper-finder%22%2C%22type%22%3A%22stdio%22%2C%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22paper-finder-student-mcp%22%5D%7D)
