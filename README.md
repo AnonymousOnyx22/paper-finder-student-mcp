@@ -163,6 +163,7 @@ Paper Finder MCP is the one where every line has a live catalog record behind it
 | `find_citing_papers` | Newer papers that cite a paper, most recent first | `paper`, `page`, `limit` |
 | `paper_references` | The papers a paper cites, so you can read its bibliography | `paper`, `sort`, `page`, `limit` |
 | `format_citation` | A ready to paste APA, MLA, Chicago, Harvard, IEEE or BibTeX reference for one paper, built from its OpenAlex record | `paper`, `style` |
+| `format_citations` | A sorted reference list for up to 10 papers in APA, MLA, Chicago, Harvard, IEEE or BibTeX, from their DOIs or OpenAlex ids | `papers`, `style` |
 | `find_authors` | Candidate authors matching a name, so you can pick the right one before listing their papers | `name` |
 | `list_author_papers` | Papers by one author, most cited first, with the name looked up in the OpenAlex author records, with optional year range and citation count | `author`, `from_year`, `to_year`, `min_citations`, `open_access_only`, `page`, `limit` |
 

@@ -2,6 +2,7 @@
 
 ## Unreleased
 
+- New `format_citations` tool turns up to 10 DOIs or OpenAlex ids into a reference list in one call, in APA, MLA, Chicago, Harvard, IEEE or BibTeX. The references come back sorted, except IEEE, which keeps your order, and unknown papers are listed as not found.
 - `format_citation` now also accepts the styles `chicago`, `harvard` and `ieee`. The existing `apa`, `mla` and `bibtex` styles give the same output as before.
 - `get_paper`, `get_papers` and the paper lists now print a WARNING line under the title when OpenAlex marks a paper as retracted, so you do not cite one by mistake.
 - `search_papers` now shows the OpenAlex source id it resolved the venue filter to, right next to the venue name in the results heading, so a wrong venue pick is visible at a glance.

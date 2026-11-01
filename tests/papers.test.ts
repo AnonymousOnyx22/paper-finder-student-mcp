@@ -210,6 +210,7 @@ describe("MCP tools", () => {
       "find_open_access_pdf",
       "find_related_papers",
       "format_citation",
+      "format_citations",
       "get_paper",
       "get_papers",
       "list_author_papers",
@@ -780,6 +781,22 @@ describe("format_citation tool", () => {
   });
   it("returns a not found error for an unknown paper", async () => {
     expect((await call("format_citation", { paper: "10.1000/unknown", style: "mla" })).code).toBe("not_found");
+  });
+});
+
+describe("format_citations tool", () => {
+  it("returns sorted references in one lookup and lists unknown ones", async () => {
+    const before = seen.length;
+    const r = await call("format_citations", { papers: ["10.1000/p3", "10.1000/p2", "10.1000/missing"], style: "apa" });
+    expect(seen.length - before).toBe(1);
+    expect(r.text).toContain("Formatted 2 of 3 references in apa.");
+    expect(r.text.indexOf("Paper 2.")).toBeLessThan(r.text.indexOf("Paper 3."));
+    expect(r.text).toContain("Not found in OpenAlex: 10.1000/missing");
+  });
+  it("keeps the given order for ieee and rejects a bad reference", async () => {
+    const r = await call("format_citations", { papers: ["10.1000/p3", "10.1000/p2"], style: "ieee" });
+    expect(r.text.indexOf("Paper 3")).toBeLessThan(r.text.indexOf("Paper 2"));
+    expect((await call("format_citations", { papers: ["nope"], style: "apa" })).code).toBe("invalid_ref");
   });
 });
 

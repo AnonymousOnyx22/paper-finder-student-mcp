@@ -54,6 +54,11 @@
       "parameters": ["paper", "style"]
     },
     {
+      "name": "format_citations",
+      "description": "Turns up to 10 papers into a reference list in one call, using the same OpenAlex lookup as get_papers and the same formatting as format_citation. The references come back sorted alphabetically, except IEEE, which keeps the order you gave because its entries are numbered. A reference that OpenAlex does not know is listed at the end as not found instead of failing the whole call. Parts the record does not have are left out instead of invented, so check each reference against the paper before you hand it in. Inputs: papers (required, 1 to 10 items, each a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807), style (required, apa, mla, chicago, harvard, ieee or bibtex). Example prompt: 'make an APA reference list from these DOIs: 10.1038/nature14539, 10.1038/nature16961 and 10.1126/science.aaa8415.'",
+      "parameters": ["papers", "style"]
+    },
+    {
       "name": "find_authors",
       "description": "Candidate authors matching a name, so you can pick the right one before listing their papers. Each line shows the OpenAlex author id, the name as OpenAlex writes it, and how many works and citations that profile has. Inputs: name (required, the author name to look up, for example Jane Doe). Example prompt: 'find authors named John Dewey'.",
       "parameters": ["name"]

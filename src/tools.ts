@@ -315,6 +315,27 @@ export const tools: ToolDef<OpenAlex>[] = [
     run: async (a, api) => formatCitation(await getWork(api, a.paper), a.style),
   },
   {
+    name: "format_citations",
+    title: "Format a reference list",
+    description:
+      "Turns up to 10 papers into a reference list in one call, using the same OpenAlex lookup as get_papers and the same formatting as format_citation. The references come back sorted alphabetically, except IEEE, which keeps the order you gave because its entries are numbered. A reference that OpenAlex does not know is listed at the end as not found instead of failing the whole call. Parts the record does not have are left out instead of invented, so check each reference against the paper before you hand it in. Inputs: papers (required, 1 to 10 items, each a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807), style (required, apa, mla, chicago, harvard, ieee or bibtex). Example prompt: 'make an APA reference list from these DOIs: 10.1038/nature14539, 10.1038/nature16961 and 10.1126/science.aaa8415.'",
+    inputSchema: {
+      papers: z.array(ref).min(1).max(10).describe("1 to 10 papers, each a DOI like 10.1038/nature14539, a doi.org link, or an OpenAlex id like W2741809807."),
+      style: z.enum(CITATION_STYLES).describe("The citation style: apa, mla, chicago, harvard, ieee or bibtex."),
+    },
+    run: async (a, api) => {
+      const entries = await getWorks(api, a.papers);
+      const refs = entries.flatMap((e) => (e.work ? [formatCitation(e.work, a.style)] : []));
+      const missing = entries.filter((e) => !e.work).map((e) => e.input);
+      if (a.style !== "ieee") refs.sort((x, y) => x.localeCompare(y, "en", { sensitivity: "base" }));
+      const parts = [`Formatted ${refs.length} of ${entries.length} references in ${a.style}.`];
+      if (refs.length) parts.push(refs.join("\n\n"));
+      if (missing.length)
+        parts.push(`Not found in OpenAlex: ${missing.join(", ")}. Check the DOI format, or search by the title with search_papers. Do not invent a citation for these.`);
+      return parts.join("\n\n");
+    },
+  },
+  {
     name: "find_open_access_pdf",
     title: "Find a free copy",
     description:
