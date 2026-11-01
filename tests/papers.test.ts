@@ -679,6 +679,7 @@ describe("MCP tools", () => {
     expect((await call("find_related_papers", { paper: "10.1000/unknown" })).code).toBe("not_found");
     expect((await call("get_related_work", { paper: "10.1000/unknown" })).code).toBe("not_found");
     expect((await call("paper_references", { paper: "10.1000/unknown" })).code).toBe("not_found");
+    expect((await call("get_paper", { paper: "W999999" })).text).toContain("Check the OpenAlex id");
   });
   it("returns a typed rate limit error instead of an empty answer", async () => {
     const a = await call("get_paper", { paper: "10.1000/ratelimited" });

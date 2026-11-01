@@ -235,12 +235,20 @@ async function getJson<T>(
   try {
     return await api.http.get<T>(path, query);
   } catch (err) {
-    if (err instanceof ApiError && err.status === 404 && ref !== undefined)
+    if (err instanceof ApiError && err.status === 404 && ref !== undefined) {
+      const bare = ref.trim().replace(/^https?:\/\/(dx\.)?doi\.org\//i, "").replace(/^doi:\s*/i, "");
+      let hint: string;
+      if (/^10\.\d{4,9}\//.test(bare))
+        hint = `Check the DOI format, it should look like 10.1038/nature14539, or `;
+      else if (/^W\d+$/i.test(shortId(ref)))
+        hint = `Check the OpenAlex id, it should look like W2741809807, or `;
+      else hint = `Check the DOI format, it should look like 10.1038/nature14539, or `;
       throw new ToolError(
         notFoundMessage ??
-          `OpenAlex has no paper for "${ref}". Check the DOI format, it should look like 10.1038/nature14539, or search by the title with search_papers. Do not invent a citation for this reference.`,
+          `OpenAlex has no paper for "${ref}". ${hint}search by the title with search_papers. Do not invent a citation for this reference.`,
         "not_found",
       );
+    }
     if (err instanceof ApiError && err.status === 429)
       throw new ToolError(
         `OpenAlex rate limited this request (HTTP 429). Wait about a minute and try again. Making fewer requests at a time also helps.`,
