@@ -181,6 +181,8 @@ Every tool description states its inputs and one example prompt, so clients can 
 - Citation counts and open access links come from OpenAlex and can be a little behind the publisher.
 - If you want faster, more reliable service for heavy use, set `OPENALEX_MAILTO` to your own email (`OPENALEX_EMAIL` works too). OpenAlex asks for it so they can reach you, and it is sent only to OpenAlex.
 - `OPENALEX_BASE_URL` points the server somewhere else, which the tests use.
+- Retraction check: when OpenAlex marks a paper as retracted, `get_paper`, `get_papers` and the paper lists print a WARNING line under the title, so you do not cite a retracted paper by mistake.
+- Citation styles: `format_citation` and `format_citations` write a Chicago citation, an IEEE citation, APA, MLA, Harvard or BibTeX.
 - Always read the paper yourself before you cite it. A catalog entry is not the paper.
 
 

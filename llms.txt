@@ -27,6 +27,8 @@
 - A search can also be held to a range of years and to a minimum number of citations, so a literature review over a window, or the papers with many citations, can be asked for in one call. It can also be kept to the papers whose title carries the search words, so a famous paper that only mentions the topic in its abstract does not take the top spot.
 - Every search and every author, citing, related and reference list comes with a showing line that says which results are on the current page and how many matched in all. It also names the page to ask for next, so a long list can be read a page at a time with the optional page input.
 - The citing, the related and the reference lists carry a one line abstract as well, so a paper can be judged from the list before it is opened.
+- Retraction check: when OpenAlex marks a paper as retracted, get_paper, get_papers and the paper lists print a WARNING line under the title, so a retracted paper is not cited by mistake.
+- Citation styles: format_citation and format_citations write a Chicago citation, an IEEE citation, APA, MLA, Harvard or BibTeX.
 - The citation graph runs both ways: `find_citing_papers` gives the papers that cite a paper and `paper_references` gives the papers a paper cites.
 
 ## Tools
