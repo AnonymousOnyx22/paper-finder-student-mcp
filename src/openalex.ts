@@ -16,6 +16,7 @@ export interface Work {
   related_works?: string[];
   referenced_works?: string[];
   type?: string;
+  is_retracted?: boolean;
 }
 
 /** One page of works, with how many works the query matched in all. */
@@ -24,7 +25,7 @@ export interface WorkPage {
   total: number;
 }
 
-const FIELDS = "id,doi,display_name,publication_year,cited_by_count,authorships,primary_location,open_access,type";
+const FIELDS = "id,doi,display_name,publication_year,cited_by_count,authorships,primary_location,open_access,type,is_retracted";
 const FULL_FIELDS = FIELDS + ",abstract_inverted_index,related_works,best_oa_location";
 /** The fields for a list of papers where every entry shows a one line abstract. */
 const LIST_FIELDS = FIELDS + ",abstract_inverted_index";
@@ -95,6 +96,7 @@ export function line(w: Work, opts: { snippet?: boolean } = {}): string {
   const oa = w.open_access?.is_oa && w.open_access.oa_url ? `Free to read, ${w.open_access.oa_url}` : "No free copy found";
   const parts = [
     `${w.display_name ?? w.title ?? "Untitled"} (${w.publication_year ?? "year unknown"})`,
+    w.is_retracted ? "  WARNING: This paper has been retracted. Do not cite it without saying so." : "",
     who ? `  ${who}${venue ? `, ${venue}` : ""}` : venue ? `  ${venue}` : "",
     `  ${w.cited_by_count ?? 0} citations. ${doi ? `DOI ${doi}. ` : ""}${shortId(w.id)}`,
     `  ${oa}`,

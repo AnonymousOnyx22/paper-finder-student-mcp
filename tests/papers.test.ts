@@ -6,7 +6,7 @@ import { InMemoryTransport } from "@modelcontextprotocol/sdk/inMemory.js";
 import { createServer, makeApi } from "../src/server.js";
 import { tools as toolDefs } from "../src/tools.js";
 import { createClient } from "../src/core/http.js";
-import { abstractOf, formatCitation, nameMatch, normalizeRef, snippetOf, spellingMatch, type OpenAlex } from "../src/openalex.js";
+import { abstractOf, formatCitation, line, nameMatch, normalizeRef, snippetOf, spellingMatch, type OpenAlex } from "../src/openalex.js";
 
 const work = (n: number, extra: Record<string, unknown> = {}) => ({
   id: `https://openalex.org/W${n}`,
@@ -166,6 +166,12 @@ describe("polite pool email", () => {
 });
 
 describe("helpers", () => {
+  it("warns about a retracted paper and stays quiet otherwise", () => {
+    const base = { id: "https://openalex.org/W1", display_name: "A paper", publication_year: 2020 };
+    expect(line({ ...base, is_retracted: true })).toContain("WARNING: This paper has been retracted");
+    expect(line({ ...base, is_retracted: false })).not.toContain("WARNING");
+    expect(line(base)).not.toContain("retracted");
+  });
   it("rebuilds an abstract and normalizes ids", () => {
     expect(abstractOf({ Hello: [0], tested: [2], world: [1] })).toBe("Hello world tested");
     expect(normalizeRef("https://doi.org/10.1000/abc")).toBe("doi:10.1000/abc");
