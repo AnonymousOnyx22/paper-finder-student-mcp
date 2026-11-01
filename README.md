@@ -123,6 +123,8 @@ Each result carries the title, the authors, the year, the venue, the citation co
 - "Who cited DOI 10.48550/arXiv.1706.03762?"
 - "What does DOI 10.1038/nature14539 cite?"
 - "Find authors named John Dewey."
+- "I am citing a Dewey for my education essay but there are several of them. Find authors named John Dewey and tell me which one wrote about learning by doing."
+- "I want to cite the Attention Is All You Need paper, DOI 10.48550/arXiv.1706.03762. Show me the papers it cites so I can pick background sources for my essay."
 - "List papers by John Dewey on education since 1950."
 - "List papers by A. Duckworth on grit."
 
